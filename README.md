@@ -66,6 +66,23 @@ npm start
 
 ## Exemplos de Uso
 
+### Alterar DPI:
+
+```bash
+curl -X POST http://localhost:4000/api/ajust-dpi \
+  -F "image=@imagem.png" \
+  -F "dpi=300"
+```
+
+### Alterar as dimensões da image:
+
+```bash
+curl -X POST http://localhost:4000/api/resize-image \
+  -F "image=@imagem.png" \
+  -F "width=300" \
+  -F "height=400"
+```
+
 ### Converter imagem:
 
 ```bash
