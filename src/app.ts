@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import path from "path";
+import fs from "fs";
 
 // Routes
 import convertRoute from "./routes/convert";
@@ -12,6 +14,15 @@ const PORT = process.env.PORT || 4000;
 
 import dotenv from "dotenv";
 dotenv.config();
+
+// Garante que as pastas necessárias existem
+const folders = ["uploads", "outputs", "zips"];
+folders.forEach((folder) => {
+    const fullPath = path.join(__dirname, `../${folder}`);
+    if (!fs.existsSync(fullPath)) {
+        fs.mkdirSync(fullPath, { recursive: true });
+    }
+});
 
 app.use(
     cors({
