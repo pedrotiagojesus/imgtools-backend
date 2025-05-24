@@ -1,5 +1,4 @@
 import sharp from "sharp";
-import fs from "fs/promises";
 
 interface ResizeOptions {
     width?: number;
@@ -7,10 +6,23 @@ interface ResizeOptions {
 }
 
 export async function resizeImage(inputPath: string, outputPath: string, options: ResizeOptions): Promise<void> {
+
     const { width, height } = options;
 
-    await sharp(inputPath).resize(width, height).toFile(outputPath);
+    console.log("🔧 A redimensionar imagem...");
+    console.log("📥 Entrada:", inputPath);
+    console.log("📤 Saída:", outputPath);
+    console.log("📐 Largura:", width, " Altura:", height);
 
-    // Limpa o ficheiro original
-    await fs.unlink(inputPath);
+    try {
+        sharp.cache(false);
+
+        await sharp(inputPath)
+            .resize(width, height)
+            .toFile(outputPath);
+        console.log("✅ Imagem redimensionada com sucesso!");
+    } catch (err) {
+        console.error("❌ Erro ao redimensionar imagem:", err);
+        throw err;
+    }
 }

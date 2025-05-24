@@ -5,9 +5,13 @@ export function sendFileAndCleanup(res: Response, filePath: string, filename: st
     res.download(filePath, filename, (err) => {
         if (err) {
             console.error("Erro ao enviar imagem:", err);
-            res.status(500).end();
+            res.status(500).json({ error: "Erro ao enviar imagem." }).end();
         }
 
-        deleteFile(filePath);
+        console.log(filePath);
+
+        setTimeout(() => {
+            deleteFile(filePath);
+        }, 1000);
     });
 }
