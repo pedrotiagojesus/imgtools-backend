@@ -16,6 +16,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // Garante que as pastas necessárias existem
+console.log('Criar pastas...')
 const folders = ["uploads", "outputs", "zips"];
 folders.forEach((folder) => {
     const fullPath = path.join(__dirname, `../${folder}`);
@@ -23,6 +24,7 @@ folders.forEach((folder) => {
         fs.mkdirSync(fullPath, { recursive: true });
     }
 });
+console.log('Pastas criadas!')
 
 app.use(
     cors({
