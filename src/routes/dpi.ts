@@ -7,44 +7,73 @@ import fs from "fs";
 import { dpiAjust } from "../services/dpiAjust";
 
 // Utils
-import { generateOutputPath } from "../utils/fileHandler";
-import { sendFileAndCleanup } from "../utils/responseHandler";
+import { tempFileManager } from "../utils/tempFileManager";
+import { createOutputPaths, createZip, getBase64FileBuffers } from "../utils/imageProcessingHelpers";
 
 const router = express.Router();
 
-const uploadDir = path.join(__dirname, "../../", process.env.UPLOAD_DIR || "uploads");
-
 const upload = multer({
-    dest: uploadDir,
+    dest: path.join(__dirname, "../../uploads/"),
 });
 
-router.post("/", upload.single("image"), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
+router.post("/", upload.array("images"), async (req, res) => {
+    if (!req.files || !(req.files instanceof Array) || req.files.length === 0) {
+        return res.status(400).json({ error: "No files uploaded" });
     }
 
-    const { dpi } = req.body;
+    const { dpi, zip } = req.body;
+    const asZip = zip === "true";
 
-    if (!dpi) {
-        fs.unlinkSync(req.file.path);
-        return res.status(400).json({ error: "DPI required" });
+    const dpiValue = parseInt(dpi);
+    if (isNaN(dpiValue) || dpiValue <= 0) {
+        // remover todos os arquivos enviados (req.files)
+        return res.status(400).json({ error: "Invalid DPI value" });
     }
 
-    const { filename, fullPath } = generateOutputPath(req.file.originalname);
+    const { outputDir, zipPath } = createOutputPaths(__dirname);
 
     try {
-        await dpiAjust(req.file.path, fullPath, {
-            dpi: parseInt(dpi),
-        });
 
-        if (!fs.existsSync(fullPath)) {
-            throw new Error("Ficheiro de saída não foi criado");
+        const outputFiles: string[] = [];
+
+        // Redimensionar imagens
+        await Promise.all(
+            req.files.map(async (file, index) => {
+                const ext = path.extname(file.originalname) || ".jpg";
+                const outputImagePath = path.join(outputDir, `image-${index + 1}${ext}`);
+
+                await dpiAjust(file.path, outputImagePath, { dpi: dpiValue });
+
+                outputFiles.push(outputImagePath);
+                tempFileManager.add(file.path);
+            })
+        );
+
+        // Download
+        if (asZip) {
+            await createZip(zipPath, outputDir);
+            return res.download(zipPath, () => {
+                fs.rmSync(outputDir, { recursive: true, force: true });
+                fs.unlink(zipPath, () => {});
+            });
+        } else {
+            const buffers = getBase64FileBuffers(outputFiles);
+            fs.rmSync(outputDir, { recursive: true, force: true });
+            return res.json({ files: buffers });
         }
-
-        sendFileAndCleanup(res, fullPath, filename);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Failed to ajust dpi image" });
+        console.error("Erro ao redimensionar imagens:", err);
+        if (!res.headersSent) {
+            return res.status(500).json({ error: "Erro ao redimensionar imagens." });
+        }
+    } finally {
+        setImmediate(async () => {
+            try {
+                await tempFileManager.cleanup();
+            } catch (err) {
+                console.error("Erro ao limpar ficheiros temporários:", err);
+            }
+        });
     }
 });
 

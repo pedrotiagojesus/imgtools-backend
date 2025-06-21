@@ -5,7 +5,6 @@ export async function convertRaster(
     outputPath: string,
     format: "jpeg" | "png" | "webp" | "avif" | "tiff"
 ): Promise<void> {
-    await sharp(inputPath)
-        .toFormat(format)
-        .toFile(outputPath);
+    sharp.cache(false);
+    await sharp(inputPath).toFormat(format).toFile(outputPath);
 }

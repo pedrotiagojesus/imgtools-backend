@@ -6,23 +6,23 @@ Backend para manipulação de imagens com funcionalidades como ajuste de DPI, re
 
 ## Tecnologias Utilizadas
 
-- Node.js + TypeScript
-- Express.js
-- Multer (upload de arquivos)
-- Sharp (processamento de imagens)
-- CORS
-- Deploy no Render
+-   Node.js + TypeScript
+-   Express.js
+-   Multer (upload de arquivos)
+-   Sharp (processamento de imagens)
+-   CORS
+-   Deploy no Render
 
 ---
 
 ## Funcionalidades da API
 
-| Endpoint                | Método | Descrição                              | Parâmetros principais               |
-|------------------------|--------|----------------------------------------|-------------------------------------|
-| `/api/convert-image`    | POST   | Converter PNG → SVG (e futuros formatos) | `image` (arquivo)                  |
-| `/api/resize-image`     | POST   | Redimensionar imagem                   | `image` (arquivo), `width`, `height` (opcionais) |
-| `/api/pdf-from-images`  | POST   | Criar PDF a partir de uma lista de imagens | JSON com URLs ou arquivos           |
-| `/api/ajust-dpi`        | POST   | Ajustar DPI de uma imagem              | `image` (arquivo), `dpi` (número obrigatório) |
+| Endpoint               | Método | Descrição                                  | Parâmetros principais                         |
+| ---------------------- | ------ | ------------------------------------------ | --------------------------------------------- |
+| `/api/convert-image`   | POST   | Converter Imagens                          | `image` (arquivo)                             |
+| `/api/resize-image`    | POST   | Redimensionar imagem                       | `image` (arquivo), `width`, `height`          |
+| `/api/pdf-from-images` | POST   | Criar PDF a partir de uma lista de imagens | JSON com URLs ou arquivos                     |
+| `/api/ajust-dpi`       | POST   | Ajustar DPI de uma imagem                  | `image` (arquivo), `dpi` (número obrigatório) |
 
 ---
 
@@ -87,32 +87,20 @@ curl -X POST http://localhost:4000/api/resize-image \
 
 ```bash
 curl -X POST http://localhost:4000/api/convert-image \
-  -F "image=@imagem.png"
+  -F "image=@imagem.png" \
+  -F "format=png"
 ```
 
-### Criar PDF: (EM DESENVOLVIMENTO)
+### Criar PDF:
 
 ```bash
 curl -X POST http://localhost:4000/api/pdf-from-images \
   -H "Content-Type: application/json" \
-  -d '{"images": ["url1.jpg", "url2.png"]}'
-```
-
----
-
-## Estrutura do Projeto
-
-```bash
-.
-├── src/
-│   ├── routes/
-│   ├── services/
-│   ├── utils/
-│   └── app.ts
-├── LICENSE.md/
-├── render.yaml/
-├── README.md/
-└── package.json
+  -d '{"images": ["url1.jpg", "url2.png"]}'\
+  -F "pdfTitle=O meu PDF"\
+  -F "pdfAuthor=Pedro Jesus"\
+  -F "pdfSubject=O meu primeiro PDF"\
+  -F "pdfCreator=Pedro Jesus"\
 ```
 
 ---

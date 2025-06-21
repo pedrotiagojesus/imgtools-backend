@@ -2,18 +2,25 @@ import express from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import archiver from "archiver";
+
+// Services
 import { convertRaster } from "../services/convertRaster";
 import { convertVectorize } from "../services/convertVectorize";
+
+// Utils
+import { tempFileManager } from "../utils/tempFileManager";
+import { createOutputPaths, createZip, getBase64FileBuffers } from "../utils/imageProcessingHelpers";
 
 const router = express.Router();
 const upload = multer({ dest: path.join(__dirname, "../../uploads/") });
 
 router.post("/", upload.array("images"), async (req, res) => {
-    const { format } = req.body;
+    const { format, zip } = req.body;
+    const asZip = zip === "true";
 
     if (!format) return res.status(400).json({ error: "Formato de saída não especificado." });
-    if (!req.files || !(req.files instanceof Array)) {
+
+    if (!req.files || !(req.files instanceof Array) || req.files.length === 0) {
         return res.status(400).json({ error: "Nenhuma imagem enviada." });
     }
 
@@ -22,29 +29,25 @@ router.post("/", upload.array("images"), async (req, res) => {
         return res.status(400).json({ error: "Formato inválido." });
     }
 
-    const timestamp = Date.now();
-    const outputDir = path.join(__dirname, "../../outputs", `${timestamp}`);
-    const zipPath = path.join(__dirname, "../../zips", `converted-${timestamp}.zip`);
-    fs.mkdirSync(outputDir, { recursive: true });
-
-    const uploadedPaths = req.files.map(file => file.path);
+    const { outputDir, zipPath } = createOutputPaths(__dirname);
 
     try {
+        const outputFiles: string[] = [];
+
         await Promise.all(
             req.files.map(async (file, index) => {
-                const baseName = `image-${index + 1}`;
-                const outputPath = path.join(outputDir, `${baseName}.${format}`);
+                const baseName = `image-${index + 1}.${format}`;
+                const outputPath = path.join(outputDir, baseName);
 
                 if (format === "svg") {
-
                     if (!["image/png", "image/jpeg"].includes(file.mimetype)) {
                         throw new Error("Só PNG ou JPEG podem ser vetorizados em SVG.");
                     }
 
                     const svg = await convertVectorize(file.path, {
                         resize: { width: 800, height: 600 },
-                        backgroundColor: '#f0f0f0',
-                        threshold: 150
+                        backgroundColor: "#ffffff",
+                        threshold: 180,
                     });
 
                     fs.writeFileSync(outputPath, svg, "utf-8");
@@ -52,33 +55,33 @@ router.post("/", upload.array("images"), async (req, res) => {
                     await convertRaster(file.path, outputPath, format as any);
                 }
 
-                fs.unlink(file.path, () => {});
+                outputFiles.push(outputPath);
+                tempFileManager.add(file.path);
             })
         );
 
-        // Cria ZIP
-        const output = fs.createWriteStream(zipPath);
-        const archive = archiver("zip", { zlib: { level: 9 } });
-
-        archive.pipe(output);
-        archive.directory(outputDir, false);
-        await archive.finalize();
-
-        output.on("close", () => {
-            res.download(zipPath, () => {
+        // Download
+        if (asZip) {
+            await createZip(zipPath, outputDir);
+            return res.download(zipPath, () => {
                 fs.rmSync(outputDir, { recursive: true, force: true });
                 fs.unlink(zipPath, () => {});
             });
-        });
+        } else {
+            const buffers = getBase64FileBuffers(outputFiles);
+            fs.rmSync(outputDir, { recursive: true, force: true });
+            return res.json({ files: buffers });
+        }
     } catch (err) {
         console.error("Erro ao converter imagens:", err);
         res.status(500).json({ error: "Erro ao converter imagens." });
     } finally {
-        // 🔥 Limpa sempre os ficheiros temporários da pasta "uploads/"
-        uploadedPaths.forEach((filePath) => {
-            fs.unlink(filePath, (err) => {
-                if (err) console.warn("Erro ao apagar temporário:", filePath, err.message);
-            });
+        setImmediate(async () => {
+            try {
+                await tempFileManager.cleanup();
+            } catch (err) {
+                console.error("Erro ao limpar ficheiros temporários:", err);
+            }
         });
     }
 });

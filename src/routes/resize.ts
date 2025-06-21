@@ -2,9 +2,13 @@ import express from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import archiver from "archiver";
+
+// Services
 import { resizeImage } from "../services/resizeImage";
-import { unlinkRetry } from "../utils/unlinkRetry";
+
+// Utils
+import { tempFileManager } from "../utils/tempFileManager";
+import { createOutputPaths, createZip, getBase64FileBuffers } from "../utils/imageProcessingHelpers";
 
 const router = express.Router();
 
@@ -17,63 +21,64 @@ router.post("/", upload.array("images"), async (req, res) => {
         return res.status(400).json({ error: "No files uploaded" });
     }
 
-    const { width, height } = req.body;
+    const { width, height, zip } = req.body;
+    const asZip = zip === "true";
+
     if (!width && !height) {
+        // remover todos os arquivos enviados (req.files)
         return res.status(400).json({ error: "Width or height required" });
     }
 
-    const timestamp = Date.now();
-    const zipDir = path.join(__dirname, "../../zips");
-    const outputDir = path.join(__dirname, "../../outputs", `${timestamp}`);
-    const zipPath = path.join(zipDir, `resized-${timestamp}.zip`);
+    const parsedWidth = width ? parseInt(width) : undefined;
+    const parsedHeight = height ? parseInt(height) : undefined;
+
+    const { outputDir, zipPath } = createOutputPaths(__dirname);
 
     try {
-        fs.mkdirSync(outputDir, { recursive: true });
+
+        const outputFiles: string[] = [];
 
         // Redimensionar imagens
         await Promise.all(
             req.files.map(async (file, index) => {
-                const ext = path.extname(file.originalname);
+                const ext = path.extname(file.originalname) || ".jpg";
                 const outputImagePath = path.join(outputDir, `image-${index + 1}${ext}`);
+
                 await resizeImage(file.path, outputImagePath, {
-                    width: width ? parseInt(width) : undefined,
-                    height: height ? parseInt(height) : undefined,
+                    width: parsedWidth,
+                    height: parsedHeight,
                 });
+
+                outputFiles.push(outputImagePath);
+                tempFileManager.add(file.path);
             })
         );
 
-        await Promise.all(req.files.map(file => {unlinkRetry(file.path)}));
-
-        // Criar ZIP
-        const output = fs.createWriteStream(zipPath);
-        const archive = archiver("zip", { zlib: { level: 9 } });
-
-        output.on("close", () => {
-            res.download(zipPath, (err) => {
-                if (err && !res.headersSent) {
-                    res.status(500).json({ error: "Erro ao enviar o ficheiro ZIP." });
-                }
-
-                // Limpar arquivos temporários
+        // Download
+        if (asZip) {
+            await createZip(zipPath, outputDir);
+            return res.download(zipPath, () => {
                 fs.rmSync(outputDir, { recursive: true, force: true });
                 fs.unlink(zipPath, () => {});
             });
-        });
-
-
-        archive.on("error", (err) => {
-            if (!res.headersSent) {
-                res.status(500).json({ error: "Erro ao criar o ZIP." });
+        } else {
+            const buffers = getBase64FileBuffers(outputFiles);
+            fs.rmSync(outputDir, { recursive: true, force: true });
+            return res.json({ files: buffers });
+        }
+    } catch (err) {
+        console.error("Erro ao redimensionar imagens:", err);
+        if (!res.headersSent) {
+            return res.status(500).json({ error: "Erro ao redimensionar imagens." });
+        }
+    } finally {
+        setImmediate(async () => {
+            try {
+                await tempFileManager.cleanup();
+            } catch (err) {
+                console.error("Erro ao limpar ficheiros temporários:", err);
             }
         });
-
-        archive.pipe(output);
-        archive.directory(outputDir, false);
-        archive.finalize();
-    } catch (err) {
-        if (!res.headersSent) {
-            res.status(500).json({ error: "Erro ao redimensionar imagens." });
-        }
     }
 });
 
