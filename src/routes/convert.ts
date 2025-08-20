@@ -28,7 +28,7 @@ router.post("/", upload.array("images"), async (req, res) => {
         return res.status(400).json({ error: "Formato inválido." });
     }
 
-    const { outputDir, zipPath } = createOutputPaths(__dirname);
+    const { outputDir, zipPath } = createOutputPaths();
 
     try {
         const outputFiles: string[] = [];

@@ -17,7 +17,7 @@ router.post("/", upload.array("images"), async (req, res) => {
     }
     const { pdfTitle, pdfAuthor, pdfSubject, pdfCreator } = req.body;
 
-    const { outputDir, pdfPath } = createOutputPaths(__dirname);
+    const { outputDir, pdfPath } = createOutputPaths();
     const pdfFilename = "output.pdf";
 
     try {

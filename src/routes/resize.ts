@@ -29,7 +29,7 @@ router.post("/", upload.array("images"), async (req, res) => {
     const parsedWidth = width ? parseInt(width) : undefined;
     const parsedHeight = height ? parseInt(height) : undefined;
 
-    const { outputDir, zipPath } = createOutputPaths(__dirname);
+    const { outputDir, zipPath } = createOutputPaths();
 
     try {
 
