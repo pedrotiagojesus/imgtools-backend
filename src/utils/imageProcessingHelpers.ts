@@ -1,20 +1,17 @@
 import path from "path";
 import fs from "fs";
 import archiver from "archiver";
+import { OUTPUT_DIR, ZIPS_DIR } from "./coreFolders";
 
 const createOutputPaths = (baseDir: string = __dirname) => {
     const timestamp = Date.now();
 
-    const outputDir = path.join(baseDir, "../../outputs", `${timestamp}`);
-    const zipDir = path.join(baseDir, "../../zips");
-    const zipPath = path.join(zipDir, `converted-${timestamp}.zip`);
+    const outputDir = path.join(OUTPUT_DIR, `${timestamp}`);
+    const zipPath = path.join(ZIPS_DIR, `converted-${timestamp}.zip`);
 
     const pdfPath = path.join(outputDir, `output.pdf`);
 
-    fs.mkdirSync(outputDir, { recursive: true });
-    fs.mkdirSync(zipDir, { recursive: true });
-
-    return { outputDir, zipDir, zipPath, pdfPath };
+    return { outputDir, zipPath, pdfPath };
 }
 
 const createZip = (zipPath: string, outputDir: string): Promise<void> => {

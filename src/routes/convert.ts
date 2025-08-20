@@ -1,5 +1,4 @@
 import express from "express";
-import multer from "multer";
 import path from "path";
 import fs from "fs";
 
@@ -10,9 +9,9 @@ import { convertVectorize } from "../services/convertVectorize";
 // Utils
 import { tempFileManager } from "../utils/tempFileManager";
 import { createOutputPaths, createZip, getBase64FileBuffers } from "../utils/imageProcessingHelpers";
+import upload from "../utils/upload";
 
 const router = express.Router();
-const upload = multer({ dest: path.join(__dirname, "../../uploads/") });
 
 router.post("/", upload.array("images"), async (req, res) => {
     const { format, zip } = req.body;

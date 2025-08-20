@@ -1,9 +1,9 @@
 import express from "express";
-import multer from "multer";
 import sharp from "sharp";
 
 const router = express.Router();
-const upload = multer();
+
+import upload from "../utils/upload";
 
 router.post("/", upload.single("image"), async (req, res) => {
     try {

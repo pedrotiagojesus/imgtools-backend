@@ -1,6 +1,4 @@
 import express from "express";
-import multer from "multer";
-import path from "path";
 import fs from "fs";
 
 // Services
@@ -9,12 +7,9 @@ import { createPdf } from "../services/createPdf";
 // Utils
 import { tempFileManager } from "../utils/tempFileManager";
 import { createOutputPaths } from "../utils/imageProcessingHelpers";
+import upload from "../utils/upload";
 
 const router = express.Router();
-
-const upload = multer({
-    dest: path.join(__dirname, "../../uploads/"),
-});
 
 router.post("/", upload.array("images"), async (req, res) => {
     if (!req.files || !(req.files instanceof Array) || req.files.length === 0) {
