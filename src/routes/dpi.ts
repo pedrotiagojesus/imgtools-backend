@@ -7,8 +7,9 @@ import { dpiAjust } from "../services/dpiAjust";
 
 // Utils
 import { tempFileManager } from "../utils/tempFileManager";
-import { createOutputPaths, createZip, getBase64FileBuffers } from "../utils/imageProcessingHelpers";
 import upload from "../utils/upload";
+import { OUTPUT_DIR } from "../utils/coreFolders";
+import { sendImageResponse } from "../utils/imageResponse";
 
 const router = express.Router();
 
@@ -18,7 +19,6 @@ router.post("/", upload.array("images"), async (req, res) => {
     }
 
     const { dpi, zip } = req.body;
-    const asZip = zip === "true";
 
     const dpiValue = parseInt(dpi);
     if (isNaN(dpiValue) || dpiValue <= 0) {
@@ -26,17 +26,14 @@ router.post("/", upload.array("images"), async (req, res) => {
         return res.status(400).json({ error: "Invalid DPI value" });
     }
 
-    const { outputDir, zipPath } = createOutputPaths();
-
     try {
-
         const outputFiles: string[] = [];
 
         // Redimensionar imagens
         await Promise.all(
             req.files.map(async (file, index) => {
                 const ext = path.extname(file.originalname) || ".jpg";
-                const outputImagePath = path.join(outputDir, `image-${index + 1}${ext}`);
+                const outputImagePath = path.join(OUTPUT_DIR, `image-${index + 1}${ext}`);
 
                 await dpiAjust(file.path, outputImagePath, { dpi: dpiValue });
 
@@ -46,17 +43,7 @@ router.post("/", upload.array("images"), async (req, res) => {
         );
 
         // Download
-        if (asZip) {
-            await createZip(zipPath, outputDir);
-            return res.download(zipPath, () => {
-                fs.rmSync(outputDir, { recursive: true, force: true });
-                fs.unlink(zipPath, () => {});
-            });
-        } else {
-            const buffers = getBase64FileBuffers(outputFiles);
-            fs.rmSync(outputDir, { recursive: true, force: true });
-            return res.json({ files: buffers });
-        }
+        await sendImageResponse(res, outputFiles, zip === "true");
     } catch (err) {
         console.error("Erro ao redimensionar imagens:", err);
         if (!res.headersSent) {

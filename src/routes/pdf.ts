@@ -6,8 +6,8 @@ import { createPdf } from "../services/createPdf";
 
 // Utils
 import { tempFileManager } from "../utils/tempFileManager";
-import { createOutputPaths } from "../utils/imageProcessingHelpers";
 import upload from "../utils/upload";
+import { OUTPUT_DIR } from "../utils/coreFolders";
 
 const router = express.Router();
 
@@ -17,7 +17,6 @@ router.post("/", upload.array("images"), async (req, res) => {
     }
     const { pdfTitle, pdfAuthor, pdfSubject, pdfCreator } = req.body;
 
-    const { outputDir, pdfPath } = createOutputPaths();
     const pdfFilename = "output.pdf";
 
     try {
@@ -29,16 +28,16 @@ router.post("/", upload.array("images"), async (req, res) => {
         });
 
         // Criar o PDF com todas as imagens
-        await createPdf(imagePaths, pdfPath, pdfTitle, pdfAuthor, pdfSubject, pdfCreator);
+        await createPdf(imagePaths, OUTPUT_DIR, pdfTitle, pdfAuthor, pdfSubject, pdfCreator);
 
-        const pdfBuffer = fs.readFileSync(pdfPath);
+        const pdfBuffer = fs.readFileSync(OUTPUT_DIR);
 
         res.setHeader("Content-Type", "application/pdf");
         res.setHeader("Content-Disposition", `attachment; filename="${pdfFilename}"`);
         res.setHeader("X-Filename", pdfFilename);
 
         res.send(pdfBuffer);
-        fs.rmSync(outputDir, { recursive: true, force: true });
+        fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
     } catch (err) {
         if (!res.headersSent) {
             return res.status(500).json({ error: "Erro ao criar pdf." });

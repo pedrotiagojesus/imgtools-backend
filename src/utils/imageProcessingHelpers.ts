@@ -1,30 +1,23 @@
 import path from "path";
 import fs from "fs";
 import archiver from "archiver";
-import { OUTPUT_DIR, ZIPS_DIR } from "./coreFolders";
+import { OUTPUT_DIR } from "./coreFolders";
 
-/**
- * Creates output paths for processed files.
- * @returns {Object} An object containing the output directory, zip path, and PDF path.
- */
-const createOutputPaths = () => {
-    const timestamp = Date.now();
+const getPdfPath = () => {
+    return path.join(OUTPUT_DIR, `images.pdf`);
+};
 
-    const outputDir = path.join(OUTPUT_DIR, `${timestamp}`);
-    const zipPath = path.join(ZIPS_DIR, `converted-${timestamp}.zip`);
-
-    const pdfPath = path.join(outputDir, `output.pdf`);
-
-    return { outputDir, zipPath, pdfPath };
+const getZipPath = () => {
+    return path.join(OUTPUT_DIR, `images.zip`);
 };
 
 /**
  * Creates a zip file from the specified output directory.
- * @param {string} zipPath - The path where the zip file will be created.
- * @param {string} outputDir - The directory containing files to be zipped.
  * @returns {Promise<void>} A promise that resolves when the zip file is created.
  */
-const createZip = (zipPath: string, outputDir: string): Promise<void> => {
+const createZip = (): Promise<void> => {
+    const zipPath = getZipPath();
+
     return new Promise((resolve, reject) => {
         const output = fs.createWriteStream(zipPath);
         const archive = archiver("zip", { zlib: { level: 9 } });
@@ -33,7 +26,7 @@ const createZip = (zipPath: string, outputDir: string): Promise<void> => {
         archive.on("error", reject);
 
         archive.pipe(output);
-        archive.directory(outputDir, false);
+        archive.directory(OUTPUT_DIR, false);
         archive.finalize();
     });
 };
@@ -67,4 +60,4 @@ const getBase64FileBuffers = (filePaths: string[]) => {
     });
 };
 
-export { createOutputPaths, createZip, getBase64FileBuffers };
+export { getPdfPath, getZipPath, createZip, getBase64FileBuffers };

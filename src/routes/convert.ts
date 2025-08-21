@@ -8,14 +8,14 @@ import { convertVectorize } from "../services/convertVectorize";
 
 // Utils
 import { tempFileManager } from "../utils/tempFileManager";
-import { createOutputPaths, createZip, getBase64FileBuffers } from "../utils/imageProcessingHelpers";
 import upload from "../utils/upload";
+import { OUTPUT_DIR } from "../utils/coreFolders";
+import { sendImageResponse } from "../utils/imageResponse";
 
 const router = express.Router();
 
 router.post("/", upload.array("images"), async (req, res) => {
     const { format, zip } = req.body;
-    const asZip = zip === "true";
 
     if (!format) return res.status(400).json({ error: "Formato de saída não especificado." });
 
@@ -28,15 +28,13 @@ router.post("/", upload.array("images"), async (req, res) => {
         return res.status(400).json({ error: "Formato inválido." });
     }
 
-    const { outputDir, zipPath } = createOutputPaths();
-
     try {
         const outputFiles: string[] = [];
 
         await Promise.all(
             req.files.map(async (file, index) => {
                 const baseName = `image-${index + 1}.${format}`;
-                const outputPath = path.join(outputDir, baseName);
+                const outputPath = path.join(OUTPUT_DIR, baseName);
 
                 if (format === "svg") {
                     if (!["image/png", "image/jpeg"].includes(file.mimetype)) {
@@ -60,17 +58,7 @@ router.post("/", upload.array("images"), async (req, res) => {
         );
 
         // Download
-        if (asZip) {
-            await createZip(zipPath, outputDir);
-            return res.download(zipPath, () => {
-                fs.rmSync(outputDir, { recursive: true, force: true });
-                fs.unlink(zipPath, () => {});
-            });
-        } else {
-            const buffers = getBase64FileBuffers(outputFiles);
-            fs.rmSync(outputDir, { recursive: true, force: true });
-            return res.json({ files: buffers });
-        }
+        await sendImageResponse(res, outputFiles, zip === "true");
     } catch (err) {
         console.error("Erro ao converter imagens:", err);
         res.status(500).json({ error: "Erro ao converter imagens." });
