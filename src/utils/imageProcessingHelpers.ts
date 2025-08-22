@@ -3,10 +3,6 @@ import fs from "fs";
 import archiver from "archiver";
 import { OUTPUT_DIR } from "./coreFolders";
 
-const getPdfPath = () => {
-    return path.join(OUTPUT_DIR, `images.pdf`);
-};
-
 const getZipPath = () => {
     return path.join(OUTPUT_DIR, `images.zip`);
 };
@@ -60,4 +56,4 @@ const getBase64FileBuffers = (filePaths: string[]) => {
     });
 };
 
-export { getPdfPath, getZipPath, createZip, getBase64FileBuffers };
+export { getZipPath, createZip, getBase64FileBuffers };

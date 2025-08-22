@@ -1,9 +1,11 @@
 import fs from "fs/promises";
+import fsSync from "fs";
 import { PDFDocument, rgb } from "pdf-lib";
+import { tempFileManager } from "../utils/tempFileManager";
 
 export async function createPdf(
     inputPaths: string[],
-    outputPath: string,
+    pdfPath: string,
     pdfTitle: string,
     pdfAuthor: string,
     pdfSubject: string,
@@ -17,12 +19,23 @@ export async function createPdf(
     const borderWidth = 2;
 
     for (const imgPath of inputPaths) {
-        const imageBytes = await fs.readFile(imgPath);
-        const ext = imgPath.toLowerCase().endsWith(".png") ? "png" : "jpg";
+        const ext = imgPath.toLowerCase().endsWith(".png")
+            ? "png"
+            : imgPath.toLowerCase().endsWith(".jpg") || imgPath.toLowerCase().endsWith(".jpeg")
+            ? "jpg"
+            : null;
 
-        const image = ext === "png"
-            ? await pdfDoc.embedPng(imageBytes)
-            : await pdfDoc.embedJpg(imageBytes);
+        if (!ext) {
+            throw new Error(`Formato de imagem não suportado: ${imgPath}. Apenas PNG e JPG são permitidos.`);
+        }
+
+        if (!fsSync.existsSync(imgPath)) {
+            throw new Error(`Imagem não encontrada: ${imgPath}`);
+        }
+
+        const imageBytes = await fs.readFile(imgPath);
+
+        const image = ext === "png" ? await pdfDoc.embedPng(imageBytes) : await pdfDoc.embedJpg(imageBytes);
 
         const imgWidth = image.width;
         const imgHeight = image.height;
@@ -47,7 +60,7 @@ export async function createPdf(
             height: A4_HEIGHT - innerMargin,
             color: undefined,
             borderColor: rgb(0, 0, 0),
-            borderWidth
+            borderWidth,
         };
 
         // ✅ Desenhar linha na borda da página (como moldura preta)
@@ -64,6 +77,10 @@ export async function createPdf(
         page.drawImage(image, imgOpt);
     }
 
+    if (pdfDoc.getPageCount() === 0) {
+        throw new Error("PDF não contém páginas válidas.");
+    }
+
     // Metadados
     pdfDoc.setTitle(pdfTitle);
     pdfDoc.setAuthor(pdfAuthor || "IMGTOOLS");
@@ -73,5 +90,13 @@ export async function createPdf(
     pdfDoc.setModificationDate(new Date());
 
     const pdfBytes = await pdfDoc.save();
-    await fs.writeFile(outputPath, pdfBytes);
+    await fs.writeFile(pdfPath, pdfBytes);
+
+    if (!fsSync.existsSync(pdfPath) || fsSync.statSync(pdfPath).size === 0) {
+        throw new Error("PDF não foi criado corretamente.");
+    }
+
+    console.log(`📝 Criando PDF: ${pdfPath}`);
+    console.log(`✅ PDF criado: ${pdfPath}`);
+    tempFileManager.add(pdfPath);
 }
