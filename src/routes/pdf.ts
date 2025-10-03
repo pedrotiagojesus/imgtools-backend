@@ -46,7 +46,6 @@ router.post("/", upload.array("images"), async (req, res) => {
         res.setHeader("Content-Type", "application/pdf");
         res.setHeader("Content-Disposition", `attachment; filename="${pdfFilename}"`);
         res.setHeader("X-Filename", pdfFilename);
-        console.log("Antes do envio do PDF");
         res.send(pdfBuffer);
         return;
     } catch (err) {

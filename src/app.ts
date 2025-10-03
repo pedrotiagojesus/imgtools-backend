@@ -15,6 +15,7 @@ const main = async () => {
     const pdfFromImagesRoute = (await import("./routes/pdf")).default;
     const dpiRoute = (await import("./routes/dpi")).default;
     const metadataRoute = (await import("./routes/metadata")).default;
+    const etsytoolsRoute = (await import("./routes/etsytools")).default;
 
     const app = express();
     const PORT = process.env.PORT || 4000;
@@ -32,6 +33,7 @@ const main = async () => {
     app.use("/api/pdf-from-images", pdfFromImagesRoute);
     app.use("/api/ajust-dpi", dpiRoute);
     app.use("/api/image-metadata", metadataRoute);
+    app.use("/api/etsytools", etsytoolsRoute);
 
     app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
