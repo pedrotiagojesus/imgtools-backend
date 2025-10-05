@@ -10,6 +10,7 @@ import { tempFileManager } from "../utils/tempFileManager";
 import upload from "../utils/upload";
 import { OUTPUT_DIR } from "../utils/coreFolders";
 import { sendImageResponse } from "../utils/imageResponse";
+import { isValidDPI } from "../utils/validators";
 
 const router = express.Router();
 
@@ -20,18 +21,16 @@ router.post("/", upload.array("images"), async (req, res) => {
 
     const { dpi, zip } = req.body;
 
-    const dpiValue = parseInt(dpi);
-    if (isNaN(dpiValue) || dpiValue <= 0) {
-        // remover todos os arquivos enviados (req.files)
+    if (!isValidDPI(dpi)) {
         return res.status(400).json({ error: "Invalid DPI value" });
     }
 
-    try {
-        const outputFiles: string[] = [];
+    const dpiValue = parseInt(dpi);
+    const outputFiles: string[] = [];
 
-        // Redimensionar imagens
-        await Promise.all(
-            req.files.map(async (file, index) => {
+    try {
+        for (const [index, file] of req.files.entries()) {
+            try {
                 const ext = path.extname(file.originalname) || ".jpg";
                 const outputImagePath = path.join(OUTPUT_DIR, `image-${index + 1}${ext}`);
 
@@ -39,10 +38,13 @@ router.post("/", upload.array("images"), async (req, res) => {
 
                 outputFiles.push(outputImagePath);
                 tempFileManager.add(file.path);
-            })
-        );
+                console.log(`✅ DPI ajustado: ${file.originalname} → ${outputImagePath}`);
+            } catch (err) {
+                console.error(`Erro ao processar ${file.originalname}:`, err);
+                tempFileManager.add(file.path);
+            }
+        }
 
-        // Download
         await sendImageResponse(res, outputFiles, zip === "true");
     } catch (err) {
         console.error("Erro ao redimensionar imagens:", err);
@@ -50,13 +52,9 @@ router.post("/", upload.array("images"), async (req, res) => {
             return res.status(500).json({ error: "Erro ao redimensionar imagens." });
         }
     } finally {
-        setImmediate(async () => {
-            try {
-                await tempFileManager.cleanup();
-            } catch (err) {
-                console.error("Erro ao limpar ficheiros temporários:", err);
-            }
-        });
+        tempFileManager.cleanup().catch(err =>
+            console.error("Erro ao limpar ficheiros temporários:", err)
+        );
     }
 });
 

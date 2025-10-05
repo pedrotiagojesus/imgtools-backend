@@ -4,24 +4,30 @@ class TempFileManager {
     private files: string[] = [];
 
     add(filePath: string) {
-        this.files.push(filePath);
+        if (!this.files.includes(filePath)) {
+            this.files.push(filePath);
+        }
+    }
+
+    async remove(filePath: string) {
+        try {
+            const stats = await stat(filePath);
+            if (!stats.isDirectory()) {
+                await fs.unlink(filePath);
+                console.log(`✅ Ficheiro apagado: ${filePath}`);
+            } else {
+                console.warn(`⚠️ ${filePath} é uma pasta, não será apagado com unlink.`);
+            }
+        } catch (err) {
+            console.warn(`❌ Erro ao apagar ${filePath}:`, err);
+        }
     }
 
     async cleanup() {
+        console.log(`🧹 Limpeza iniciada: ${this.files.length} ficheiros`);
         for (const file of this.files) {
-            try {
-                const stats = await stat(file);
-                if (stats.isDirectory()) {
-                    console.warn(`⚠️ ${file} é uma pasta, não será apagado com unlink.`);
-                    continue;
-                }
-
-                await new Promise((resolve) => setTimeout(resolve, 50));
-                await fs.unlink(file);
-                console.log(`✅ Ficheiro apagado: ${file}`);
-            } catch (err) {
-                console.warn(`❌ Erro ao apagar ${file}:`, err);
-            }
+            await new Promise(resolve => setTimeout(resolve, 50));
+            await this.remove(file);
         }
         this.files = [];
     }

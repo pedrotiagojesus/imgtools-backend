@@ -18,7 +18,7 @@ export async function resizeImage(inputPath: string, outputPath: string, options
         sharp.cache(false);
 
         await sharp(inputPath)
-            .resize(width, height)
+            .resize({ width, height, fit: "inside" })
             .toFile(outputPath);
         console.log("✅ Imagem redimensionada com sucesso!");
     } catch (err) {

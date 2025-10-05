@@ -19,10 +19,15 @@ export async function generate() {
 
 // Removes the directories and their contents
 // This is useful for cleaning up temporary files after processing
-export async function remover() {
-    const foldersToRemove = ["uploads", "outputs", "zips"];
+export async function remove() {
+    const foldersToRemove = [
+        path.join(__dirname, "../../tmp/upload"),
+        path.join(__dirname, "../../tmp/output"),
+        path.join(__dirname, "../../tmp/zips"),
+    ];
+
     for (const folder of foldersToRemove) {
-        const fullPath = path.join(__dirname, `../../${folder}`);
+        const fullPath = path.join(__dirname, folder);
         try {
             await fs.promises.rm(fullPath, { recursive: true, force: true });
         } catch (err) {

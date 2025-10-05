@@ -6,21 +6,26 @@ import { Response } from "express";
 import { tempFileManager } from "./tempFileManager";
 
 export async function sendImageResponse(res: Response, outputFiles: string[], asZip: boolean) {
+    console.log(`📤 Enviando resposta como ${asZip ? "ZIP" : "Base64 JSON"}`);
+
     if (asZip) {
         await createZip();
-        return res.download(getZipPath(), () => {
-            fs.readdirSync(OUTPUT_DIR).forEach((file) => {
-                const filePath = path.join(OUTPUT_DIR, file);
-                tempFileManager.add(filePath);
+
+        const zipPath = getZipPath();
+        if (!fs.existsSync(zipPath)) {
+            return res.status(500).json({ error: "ZIP não foi gerado corretamente." });
+        }
+
+        tempFileManager.add(zipPath);
+
+        return res.download(zipPath, () => {
+            fs.unlink(zipPath, err => {
+                if (err) console.warn("⚠️ Erro ao remover ZIP:", err);
             });
-            fs.unlink(getZipPath(), () => {});
         });
     } else {
         const buffers = getBase64FileBuffers(outputFiles);
-        fs.readdirSync(OUTPUT_DIR).forEach((file) => {
-            const filePath = path.join(OUTPUT_DIR, file);
-            tempFileManager.add(filePath);
-        });
+        outputFiles.forEach(filePath => tempFileManager.add(filePath));
         return res.json({ files: buffers });
     }
 }

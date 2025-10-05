@@ -3,36 +3,32 @@ import fs from "fs";
 import archiver from "archiver";
 import { OUTPUT_DIR } from "./coreFolders";
 
-const getZipPath = () => {
-    return path.join(OUTPUT_DIR, `images.zip`);
+export const ZIP_FILENAME = "images.zip";
+
+export const getZipPath = () => {
+    return path.join(OUTPUT_DIR, ZIP_FILENAME);
 };
 
-/**
- * Creates a zip file from the specified output directory.
- * @returns {Promise<void>} A promise that resolves when the zip file is created.
- */
-const createZip = (): Promise<void> => {
+export const createZip = (): Promise<void> => {
     const zipPath = getZipPath();
 
     return new Promise((resolve, reject) => {
         const output = fs.createWriteStream(zipPath);
         const archive = archiver("zip", { zlib: { level: 9 } });
 
-        output.on("close", resolve);
-        archive.on("error", reject);
+        output.on("close", () => {
+            console.log(`📦 ZIP criado: ${zipPath} (${archive.pointer()} bytes)`);
+            resolve();
+        });
 
+        archive.on("error", reject);
         archive.pipe(output);
         archive.directory(OUTPUT_DIR, false);
         archive.finalize();
     });
 };
 
-/**
- * Converts an array of file paths to base64 buffers.
- * @param {string[]} filePaths - An array of file paths to convert.
- * @returns {Object[]} An array of objects containing filename, mimeType, and base64 data.
- */
-const getBase64FileBuffers = (filePaths: string[]) => {
+export const getBase64FileBuffers = (filePaths: string[]) => {
     const mimeTypes: Record<string, string> = {
         ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg",
@@ -44,6 +40,10 @@ const getBase64FileBuffers = (filePaths: string[]) => {
     };
 
     return filePaths.map((filePath) => {
+        if (!fs.existsSync(filePath)) {
+            throw new Error(`Ficheiro não encontrado: ${filePath}`);
+        }
+
         const ext = path.extname(filePath).toLowerCase();
         const mimeType = mimeTypes[ext] || "application/octet-stream";
         const data = fs.readFileSync(filePath);
@@ -55,5 +55,3 @@ const getBase64FileBuffers = (filePaths: string[]) => {
         };
     });
 };
-
-export { getZipPath, createZip, getBase64FileBuffers };
