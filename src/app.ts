@@ -24,6 +24,7 @@ const createServer = async () => {
     app.use(
         cors({
             origin: process.env.CORS_ORIGIN?.split(",") || "*",
+            exposedHeaders: ["X-Filename", "Content-Disposition"],
         })
     );
 

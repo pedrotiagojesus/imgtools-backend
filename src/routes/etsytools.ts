@@ -6,6 +6,7 @@ import fs from "fs";
 import upload from "../utils/upload";
 import { tempFileManager } from "../utils/tempFileManager";
 import { OUTPUT_DIR } from "../utils/coreFolders";
+import { slugify } from "../utils/text";
 
 // Services
 import { convertRaster } from "../services/convertRaster";
@@ -29,6 +30,8 @@ router.post("/generate-product", upload.array("images"), async (req, res) => {
             });
         }
     }
+
+    const { pdfTitle, pdfDescription } = req.body;
 
     try {
         const processedPaths: string[] = [];
@@ -60,9 +63,9 @@ router.post("/generate-product", upload.array("images"), async (req, res) => {
         }
 
         // 4. Gerar PDF
-        const pdfFilename = "images.pdf";
+        const pdfFilename = `${slugify(pdfTitle)}.pdf`;
         const pdfPath = path.join(OUTPUT_DIR, pdfFilename);
-        await createPdf(processedPaths, pdfPath, "TESTE", "PEDRO", "TESTER", "PEDRO");
+        await createPdf(processedPaths, pdfPath, pdfTitle, "Pedro Jesus", pdfDescription, "ETSY Tools");
         console.log(`📄 PDF gerado: ${pdfPath}`);
 
         const pdfBuffer = fs.readFileSync(pdfPath);
