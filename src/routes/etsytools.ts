@@ -1,17 +1,17 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-
-// Utils
+import archiver from "archiver";
 import upload from "../utils/upload";
 import { tempFileManager } from "../utils/tempFileManager";
 import { OUTPUT_DIR } from "../utils/coreFolders";
 import { slugify } from "../utils/text";
 
-// Services
+// Serviços existentes
 import { convertRaster } from "../services/convertRaster";
 import { dpiAjust } from "../services/dpiAjust";
 import { createPdf } from "../services/createPdf";
+import { pdfPageImages } from "../services/pdfPageImages";
 
 const router = express.Router();
 
@@ -36,43 +36,50 @@ router.post("/generate-product", upload.array("images"), async (req, res) => {
     try {
         const processedPaths: string[] = [];
 
+        // 1️⃣ Converter e ajustar DPI das imagens enviadas
         for (let index = 0; index < req.files.length; index++) {
             const file = req.files[index];
-            const ext = path.extname(file.originalname).toLowerCase();
 
             console.log(`📥 Recebido: ${file.originalname}`);
 
-            // 1. Converter para PNG
             const baseName = `convert-${Date.now()}-${index + 1}.png`;
             const convertedPath = path.join(OUTPUT_DIR, baseName);
             await convertRaster(file.path, convertedPath, "png");
-            console.log(`🔄 Convertido para PNG: ${convertedPath}`);
 
-            // 2. Ajustar DPI sobre imagem convertida
             const dpiName = `dpi-${Date.now()}-${index + 1}.png`;
             const dpiPath = path.join(OUTPUT_DIR, dpiName);
             await dpiAjust(convertedPath, dpiPath, { dpi: 300 });
-            console.log(`🖨️ DPI ajustado: ${dpiPath}`);
 
             processedPaths.push(dpiPath);
 
-            // 3. Gerir ficheiros temporários
             tempFileManager.add(file.path);
             tempFileManager.add(convertedPath);
             tempFileManager.add(dpiPath);
         }
 
-        // 4. Gerar PDF
+        // 2️⃣ Gerar PDF
         const pdfFilename = `${slugify(pdfTitle)}.pdf`;
         const pdfPath = path.join(OUTPUT_DIR, pdfFilename);
         await createPdf(processedPaths, pdfPath, pdfTitle, "Pedro Jesus", pdfDescription, "ETSY Tools");
         console.log(`📄 PDF gerado: ${pdfPath}`);
 
-        const pdfBuffer = fs.readFileSync(pdfPath);
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Disposition", `attachment; filename="${pdfFilename}"`);
-        res.setHeader("X-Filename", pdfFilename);
-        res.send(pdfBuffer);
+        // Depois de gerar o PDF
+        const pageImages = await pdfPageImages(processedPaths, OUTPUT_DIR);
+
+        // 4️⃣ Criar ZIP (PDF + imagens + páginas)
+        const zipFilename = `${slugify(pdfTitle)}.zip`;
+        res.setHeader("Content-Type", "application/zip");
+        res.setHeader("Content-Disposition", `attachment; filename="${zipFilename}"`);
+
+        const archive = archiver("zip", { zlib: { level: 9 } });
+        archive.pipe(res);
+
+        archive.file(pdfPath, { name: pdfFilename });
+        for (const imgPath of pageImages) {
+            archive.file(imgPath, { name: path.basename(imgPath) });
+        }
+
+        await archive.finalize();
     } catch (err) {
         console.error("❌ Erro ao processar imagens:", err);
         res.status(500).json({ error: "Erro ao processar imagens", details: err });
