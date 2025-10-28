@@ -1,20 +1,14 @@
 import sharp from "sharp";
 import path from "path";
-import fs from "fs/promises";
 import { tempFileManager } from "../utils/tempFileManager";
+import { pdf } from "../config/pdf";
 
-/**
- * Gera imagens de cada "página" de um PDF, usando as imagens originais
- * com a mesma escala, borda e centralização do createPdf.
- * @param inputPaths Caminhos das imagens usadas no PDF
- * @param outputDir Diretório onde salvar as imagens das páginas
- * @returns Caminhos das imagens geradas
- */
 export async function pdfPageImages(inputPaths: string[], outputDir: string) {
-    const A4_WIDTH = 595.28; // PDF points
-    const A4_HEIGHT = 841.89;
-    const innerMargin = 24;
-    const borderWidth = 2;
+    const A4_WIDTH = pdf.width;
+    const A4_HEIGHT = pdf.height;
+    const innerVerticalMargin = pdf.margin.top + pdf.margin.bottom;
+    const innerHorizontalMargin = pdf.margin.left + pdf.margin.right;
+    const borderWidth = pdf.border_width;
 
     const pageImages: string[] = [];
 
@@ -28,8 +22,8 @@ export async function pdfPageImages(inputPaths: string[], outputDir: string) {
         const imgHeight = metadata.height;
 
         // Escala para caber na página A4 (mesmo cálculo do PDF)
-        const usableWidth = A4_WIDTH - innerMargin - borderWidth * 2;
-        const usableHeight = A4_HEIGHT - innerMargin - borderWidth * 2;
+        const usableWidth = A4_WIDTH - innerHorizontalMargin - borderWidth * 2;
+        const usableHeight = A4_HEIGHT - innerVerticalMargin - borderWidth * 2;
         const scale = Math.min(usableWidth / imgWidth, usableHeight / imgHeight, 1);
 
         const scaledWidth = Math.round(imgWidth * scale);
@@ -56,7 +50,6 @@ export async function pdfPageImages(inputPaths: string[], outputDir: string) {
             .png()
             .toBuffer();
 
-        // Adicionar borda (retângulo preto)
         const finalImage = await sharp({
             create: {
                 width: canvasWidth,
@@ -70,9 +63,11 @@ export async function pdfPageImages(inputPaths: string[], outputDir: string) {
                 {
                     input: Buffer.from(
                         `<svg width="${canvasWidth}" height="${canvasHeight}">
-                            <rect x="${innerMargin / 2}" y="${innerMargin / 2}" width="${
-                            canvasWidth - innerMargin
-                        }" height="${canvasHeight - innerMargin}" fill="none" stroke="black" stroke-width="${borderWidth}" />
+                            <rect x="${innerHorizontalMargin / 2}" y="${innerVerticalMargin / 2}" width="${
+                            canvasWidth - innerHorizontalMargin
+                        }" height="${
+                            canvasHeight - innerVerticalMargin
+                        }" fill="none" stroke="black" stroke-width="${borderWidth}" />
                         </svg>`
                     ),
                     top: 0,

@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import { PDFDocument, rgb } from "pdf-lib";
 import { tempFileManager } from "../utils/tempFileManager";
 import { getImageExtension, validatePdfOutput } from "../utils/pdfUtils";
+import { pdf } from "../config/pdf";
 
 export async function createPdf(
     inputPaths: string[],
@@ -13,10 +14,11 @@ export async function createPdf(
 ): Promise<void> {
     const pdfDoc = await PDFDocument.create();
 
-    const A4_WIDTH = 595.28;
-    const A4_HEIGHT = 841.89;
-    const innerMargin = 24;
-    const borderWidth = 2;
+    const A4_WIDTH = pdf.width;
+    const A4_HEIGHT = pdf.height;
+    const innerVerticalMargin = pdf.margin.top + pdf.margin.bottom;
+    const innerHorizontalMargin = pdf.margin.left + pdf.margin.right;
+    const borderWidth = pdf.border_width;
 
     for (const imgPath of inputPaths) {
         const ext = getImageExtension(imgPath);
@@ -36,8 +38,8 @@ export async function createPdf(
         const imgWidth = image.width;
         const imgHeight = image.height;
 
-        const usableWidth = A4_WIDTH - innerMargin - borderWidth * 2;
-        const usableHeight = A4_HEIGHT - innerMargin - borderWidth * 2;
+        const usableWidth = A4_WIDTH - innerHorizontalMargin - borderWidth * 2;
+        const usableHeight = A4_HEIGHT - innerVerticalMargin - borderWidth * 2;
         const scale = Math.min(usableWidth / imgWidth, usableHeight / imgHeight, 1);
 
         const scaledWidth = imgWidth * scale;
@@ -48,10 +50,10 @@ export async function createPdf(
         const page = pdfDoc.addPage([A4_WIDTH, A4_HEIGHT]);
 
         page.drawRectangle({
-            x: innerMargin / 2,
-            y: innerMargin / 2,
-            width: A4_WIDTH - innerMargin,
-            height: A4_HEIGHT - innerMargin,
+            x: innerHorizontalMargin / 2,
+            y: innerVerticalMargin / 2,
+            width: A4_WIDTH - innerHorizontalMargin,
+            height: A4_HEIGHT - innerVerticalMargin,
             borderColor: rgb(0, 0, 0),
             borderWidth,
         });

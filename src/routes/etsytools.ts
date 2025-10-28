@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import fs from "fs";
 import archiver from "archiver";
 import upload from "../utils/upload";
 import { tempFileManager } from "../utils/tempFileManager";
