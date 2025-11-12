@@ -1,5 +1,7 @@
 import sharp from "sharp";
 import path from "path";
+import { withTimeout } from "../utils/withTimeout";
+import { env } from "../config/env";
 
 interface DpiOptions {
     dpi?: number;
@@ -19,7 +21,11 @@ export async function dpiAjust(inputPath: string, outputPath: string, options: D
         throw new Error(`O formato ${ext} não suporta metadados de DPI.`);
     }
 
-    await sharp(inputPath).withMetadata({ density: dpi }).toFile(outputPath);
+    await withTimeout(
+        sharp(inputPath).withMetadata({ density: dpi }).toFile(outputPath),
+        env.IMAGE_PROCESSING_TIMEOUT_MS,
+        'DPI adjustment'
+    );
 
     console.log(`🖨️ DPI ajustado para ${dpi} → ${outputPath}`);
 }

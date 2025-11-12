@@ -3,6 +3,8 @@ import { PDFDocument, rgb } from "pdf-lib";
 import { tempFileManager } from "../utils/tempFileManager";
 import { getImageExtension, validatePdfOutput } from "../utils/pdfUtils";
 import { pdf } from "../config/pdf";
+import { withTimeout } from "../utils/withTimeout";
+import { env } from "../config/env";
 
 export async function createPdf(
     inputPaths: string[],
@@ -12,7 +14,11 @@ export async function createPdf(
     pdfSubject: string,
     pdfCreator: string
 ): Promise<void> {
-    const pdfDoc = await PDFDocument.create();
+    const pdfDoc = await withTimeout(
+        PDFDocument.create(),
+        env.IMAGE_PROCESSING_TIMEOUT_MS,
+        'PDF document creation'
+    );
 
     const A4_WIDTH = pdf.width;
     const A4_HEIGHT = pdf.height;
@@ -32,8 +38,8 @@ export async function createPdf(
 
         const imageBytes = await fs.readFile(imgPath);
         const image = ext === "png"
-            ? await pdfDoc.embedPng(imageBytes)
-            : await pdfDoc.embedJpg(imageBytes);
+            ? await withTimeout(pdfDoc.embedPng(imageBytes), env.IMAGE_PROCESSING_TIMEOUT_MS, 'PNG embedding')
+            : await withTimeout(pdfDoc.embedJpg(imageBytes), env.IMAGE_PROCESSING_TIMEOUT_MS, 'JPG embedding');
 
         const imgWidth = image.width;
         const imgHeight = image.height;
@@ -73,7 +79,11 @@ export async function createPdf(
     pdfDoc.setCreationDate(new Date());
     pdfDoc.setModificationDate(new Date());
 
-    const pdfBytes = await pdfDoc.save();
+    const pdfBytes = await withTimeout(
+        pdfDoc.save(),
+        env.IMAGE_PROCESSING_TIMEOUT_MS,
+        'PDF save'
+    );
     await fs.writeFile(pdfPath, pdfBytes);
 
     await validatePdfOutput(pdfPath);

@@ -1,4 +1,6 @@
 import sharp from "sharp";
+import { withTimeout } from "../utils/withTimeout";
+import { env } from "../config/env";
 
 interface ResizeOptions {
     width?: number;
@@ -17,9 +19,13 @@ export async function resizeImage(inputPath: string, outputPath: string, options
     try {
         sharp.cache(false);
 
-        await sharp(inputPath)
-            .resize({ width, height, fit: "inside" })
-            .toFile(outputPath);
+        await withTimeout(
+            sharp(inputPath)
+                .resize({ width, height, fit: "inside" })
+                .toFile(outputPath),
+            env.IMAGE_PROCESSING_TIMEOUT_MS,
+            'Image resize'
+        );
         console.log("✅ Imagem redimensionada com sucesso!");
     } catch (err) {
         console.error("❌ Erro ao redimensionar imagem:", err);
