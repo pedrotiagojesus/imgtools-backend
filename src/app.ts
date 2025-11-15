@@ -1,10 +1,8 @@
 import express from "express";
 import cors from "cors";
-import swaggerUi from "swagger-ui-express";
 
 // Config - Validate environment first (fail fast)
 import { env } from "./config/env";
-import { swaggerSpec } from "./config/swagger";
 import { logger } from "./config/logger";
 
 // Middleware
@@ -52,10 +50,7 @@ const createServer = async () => {
     // 5. Body parser
     app.use(express.json());
 
-    // 6. API Documentation
-    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-    // 7. Routes
+    // 6. Routes
     const healthRoute = (await import("./routes/health")).default;
     const convertRoute = (await import("./routes/convert")).default;
     const resizeRoute = (await import("./routes/resize")).default;
@@ -77,7 +72,6 @@ const createServer = async () => {
 
     const server = app.listen(env.PORT, () => {
         logger.info(`🚀 Servidor iniciado na porta ${env.PORT}`);
-        logger.info(`📚 API Documentation available at http://localhost:${env.PORT}/api-docs`);
     });
 
     return server;

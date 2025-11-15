@@ -12,7 +12,6 @@ Backend robusto e production-ready para manipulação de imagens com funcionalid
 -   Sharp (processamento de imagens)
 -   Winston (logging estruturado)
 -   Zod (validação de configuração)
--   Swagger/OpenAPI (documentação da API)
 -   Express Rate Limit (proteção contra abuso)
 -   CORS
 -   Deploy no Render
@@ -36,13 +35,6 @@ Backend robusto e production-ready para manipulação de imagens com funcionalid
 | --------------- | ------ | ---------------------------------------------- |
 | `/health`       | GET    | Verifica o estado operacional da API           |
 | `/health/ready` | GET    | Verifica se a API está pronta para receber requests |
-
-### Documentação da API
-
-| Endpoint                  | Descrição                                      |
-| ------------------------- | ---------------------------------------------- |
-| `/api-docs`               | Interface Swagger UI para testar a API         |
-| `/api-docs/swagger.json`  | Especificação OpenAPI 3.0 em formato JSON      |
 
 ---
 
@@ -233,28 +225,6 @@ Verifica se a API está pronta para receber requests (readiness probe).
   "status": "ready"
 }
 ```
-
----
-
-## Documentação Interativa (Swagger)
-
-A API inclui documentação interativa completa através do Swagger UI.
-
-### Acesso
-
-Após iniciar a aplicação, acesse:
-
-```
-http://localhost:4000/api-docs
-```
-
-### Funcionalidades
-
-- Visualização de todos os endpoints disponíveis
-- Schemas de request e response
-- Exemplos de uso
-- Teste direto dos endpoints através da interface
-- Download da especificação OpenAPI em JSON
 
 ---
 
