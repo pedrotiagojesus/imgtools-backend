@@ -4,6 +4,7 @@ dist/
 uploads/
 outputs/
 zips/
+tmp/
 
 # Logs
 logs
@@ -26,5 +27,3 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
-
-tmp/
