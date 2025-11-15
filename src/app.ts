@@ -12,13 +12,13 @@ import { timeout } from "./middleware/timeout";
 import { errorHandler } from "./middleware/errorHandler";
 
 // Utils
-import { generate as generateCoreFolder, remove as removeCoreFolder } from "./utils/coreFolders";
+import { generate as generateDirectories, remove as removeDirectories } from "./utils/directories";
 import { tempFileManager } from "./utils/tempFileManager";
 
 const initFolders = async () => {
     try {
-        await generateCoreFolder();
-        await removeCoreFolder();
+        await generateDirectories();
+        await removeDirectories();
     } catch (error) {
         logger.error("Erro ao preparar pastas:", error);
         throw error;

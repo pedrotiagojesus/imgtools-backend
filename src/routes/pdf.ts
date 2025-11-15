@@ -8,7 +8,7 @@ import { createPdf } from "../services/createPdf";
 // Utils
 import { tempFileManager } from "../utils/tempFileManager";
 import upload from "../utils/upload";
-import { OUTPUT_DIR } from "../utils/coreFolders";
+import { OUTPUT_DIR } from "../utils/directories";
 
 // Errors
 import { ValidationError } from "../errors";

@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import { env } from '../config/env';
 import { ValidationError } from '../errors';
-import { UPLOADS_DIR } from '../utils/coreFolders';
+import { UPLOADS_DIR } from '../utils/directories';
 
 /**
  * Whitelist of allowed MIME types for image uploads

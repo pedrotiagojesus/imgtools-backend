@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 import archiver from "archiver";
-import { OUTPUT_DIR } from "./coreFolders";
+import { OUTPUT_DIR } from "./directories";
 import { logger } from "../config/logger";
 
 export const ZIP_FILENAME = "images.zip";

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { UPLOADS_DIR, OUTPUT_DIR } from '../utils/coreFolders';
+import { UPLOADS_DIR, OUTPUT_DIR } from '../utils/directories';
 
 const router = Router();
 

@@ -9,7 +9,7 @@ import { convertVectorize } from "../services/convertVectorize";
 // Utils
 import { tempFileManager } from "../utils/tempFileManager";
 import upload from "../utils/upload";
-import { OUTPUT_DIR } from "../utils/coreFolders";
+import { OUTPUT_DIR } from "../utils/directories";
 import { sendImageResponse } from "../utils/imageResponse";
 import { isValidFormat, isVectorizable } from "../utils/validators";
 

@@ -8,7 +8,7 @@ interface DpiOptions {
     dpi?: number;
 }
 
-export async function dpiAjust(
+export async function adjustDpi(
     inputPath: string,
     outputPath: string,
     options: DpiOptions,

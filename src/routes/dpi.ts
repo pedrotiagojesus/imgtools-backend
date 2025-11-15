@@ -2,12 +2,12 @@ import express from "express";
 import path from "path";
 
 // Services
-import { dpiAjust } from "../services/dpiAjust";
+import { adjustDpi } from "../services/adjustDpi";
 
 // Utils
 import { tempFileManager } from "../utils/tempFileManager";
 import upload from "../utils/upload";
-import { OUTPUT_DIR } from "../utils/coreFolders";
+import { OUTPUT_DIR } from "../utils/directories";
 import { sendImageResponse } from "../utils/imageResponse";
 import { isValidDPI, VALIDATION_LIMITS } from "../utils/validators";
 
@@ -42,7 +42,7 @@ router.post("/", upload.array("images"), async (req, res, next) => {
             const ext = path.extname(file.originalname) || ".jpg";
             const outputImagePath = path.join(OUTPUT_DIR, `image-${index + 1}${ext}`);
 
-            await dpiAjust(file.path, outputImagePath, { dpi: dpiValue }, requestId);
+            await adjustDpi(file.path, outputImagePath, { dpi: dpiValue }, requestId);
 
             outputFiles.push(outputImagePath);
             tempFileManager.add(outputImagePath, requestId);

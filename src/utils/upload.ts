@@ -1,6 +1,6 @@
 import fs from "fs";
 import { Request, Response, NextFunction } from "express";
-import { UPLOADS_DIR } from "./coreFolders";
+import { UPLOADS_DIR } from "./directories";
 import { uploadValidator, handleUploadError } from "../middleware/uploadValidator";
 import { tempFileManager } from "./tempFileManager";
 import { logger } from "../config/logger";

@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { createZip, getZipPath, getBase64FileBuffers } from "./imageProcessingHelpers";
-import { OUTPUT_DIR } from "./coreFolders";
+import { OUTPUT_DIR } from "./directories";
 import { Response } from "express";
 import { tempFileManager } from "./tempFileManager";
 import { logger } from "../config/logger";

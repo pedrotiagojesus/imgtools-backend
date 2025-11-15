@@ -5,13 +5,13 @@ import archiver from "archiver";
 // Utils
 import upload from "../utils/upload";
 import { tempFileManager } from "../utils/tempFileManager";
-import { OUTPUT_DIR } from "../utils/coreFolders";
+import { OUTPUT_DIR } from "../utils/directories";
 import { slugify } from "../utils/text";
 import { logger } from "../config/logger";
 
 // Services
 import { convertRaster } from "../services/convertRaster";
-import { dpiAjust } from "../services/dpiAjust";
+import { adjustDpi } from "../services/adjustDpi";
 import { createPdf } from "../services/createPdf";
 import { pdfPageImages } from "../services/pdfPageImages";
 
@@ -76,7 +76,7 @@ router.post("/generate-product", upload.array("images"), async (req, res, next) 
 
             const dpiName = `dpi-${requestId}-${index + 1}.png`;
             const dpiPath = path.join(OUTPUT_DIR, dpiName);
-            await dpiAjust(convertedPath, dpiPath, { dpi: 300 }, requestId);
+            await adjustDpi(convertedPath, dpiPath, { dpi: 300 }, requestId);
             tempFileManager.add(dpiPath, requestId);
 
             processedPaths.push(dpiPath);
