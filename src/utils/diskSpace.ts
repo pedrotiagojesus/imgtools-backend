@@ -17,6 +17,26 @@ interface DiskSpaceInfo {
 }
 
 /**
+ * Cache entry for disk space information
+ */
+interface CacheEntry {
+    data: DiskSpaceInfo;
+    timestamp: number;
+}
+
+/**
+ * Cache for disk space checks to avoid excessive system calls
+ * Key: path, Value: cached disk space info with timestamp
+ */
+const diskSpaceCache = new Map<string, CacheEntry>();
+
+/**
+ * Cache TTL in milliseconds (default: 30 seconds)
+ * Disk space doesn't change frequently, so caching is safe
+ */
+const CACHE_TTL_MS = 30000;
+
+/**
  * Check disk space on Windows using wmic command
  * @param path - Path to check (defaults to C: drive)
  * @returns Disk space information
@@ -107,18 +127,93 @@ async function checkDiskSpaceUnix(path: string): Promise<DiskSpaceInfo> {
 }
 
 /**
+ * Check if cached data is still valid
+ * @param cacheEntry - Cache entry to check
+ * @returns true if cache is still valid
+ */
+function isCacheValid(cacheEntry: CacheEntry): boolean {
+    const now = Date.now();
+    return (now - cacheEntry.timestamp) < CACHE_TTL_MS;
+}
+
+/**
  * Check disk space for a given path (platform-agnostic)
+ * Results are cached for 30 seconds to avoid excessive system calls.
+ *
  * @param path - Path to check
+ * @param useCache - Whether to use cached results (default: true)
  * @returns Disk space information
  */
-export async function checkDiskSpace(path: string): Promise<DiskSpaceInfo> {
-    const isWindows = process.platform === 'win32';
-
-    if (isWindows) {
-        return checkDiskSpaceWindows(path);
-    } else {
-        return checkDiskSpaceUnix(path);
+export async function checkDiskSpace(path: string, useCache: boolean = true): Promise<DiskSpaceInfo> {
+    // Check cache first
+    if (useCache) {
+        const cached = diskSpaceCache.get(path);
+        if (cached && isCacheValid(cached)) {
+            logger.debug('Using cached disk space info', {
+                path,
+                age: Date.now() - cached.timestamp
+            });
+            return cached.data;
+        }
     }
+
+    // Perform actual check
+    const isWindows = process.platform === 'win32';
+    const diskInfo = isWindows
+        ? await checkDiskSpaceWindows(path)
+        : await checkDiskSpaceUnix(path);
+
+    // Update cache
+    diskSpaceCache.set(path, {
+        data: diskInfo,
+        timestamp: Date.now()
+    });
+
+    logger.debug('Disk space info cached', {
+        path,
+        usagePercent: diskInfo.usagePercent.toFixed(2)
+    });
+
+    return diskInfo;
+}
+
+/**
+ * Clear the disk space cache
+ * Useful for testing or when you need fresh data
+ *
+ * @param path - Optional path to clear. If not provided, clears entire cache
+ */
+export function clearDiskSpaceCache(path?: string): void {
+    if (path) {
+        diskSpaceCache.delete(path);
+        logger.debug('Disk space cache cleared for path', { path });
+    } else {
+        diskSpaceCache.clear();
+        logger.debug('Entire disk space cache cleared');
+    }
+}
+
+/**
+ * Get cache statistics
+ * Useful for monitoring and debugging
+ *
+ * @returns Cache statistics
+ */
+export function getDiskSpaceCacheStats(): {
+    size: number;
+    entries: Array<{ path: string; age: number; valid: boolean }>;
+} {
+    const now = Date.now();
+    const entries = Array.from(diskSpaceCache.entries()).map(([path, entry]) => ({
+        path,
+        age: now - entry.timestamp,
+        valid: isCacheValid(entry)
+    }));
+
+    return {
+        size: diskSpaceCache.size,
+        entries
+    };
 }
 
 /**
