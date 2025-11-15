@@ -9,7 +9,7 @@ import { tempFileManager } from "../utils/tempFileManager";
 import upload from "../utils/upload";
 import { OUTPUT_DIR } from "../utils/coreFolders";
 import { sendImageResponse } from "../utils/imageResponse";
-import { isValidDPI } from "../utils/validators";
+import { isValidDPI, VALIDATION_LIMITS } from "../utils/validators";
 
 // Errors
 import { ValidationError } from "../errors";
@@ -25,7 +25,9 @@ router.post("/", upload.array("images"), async (req, res, next) => {
         const { dpi, zip } = req.body;
 
         if (!isValidDPI(dpi)) {
-            throw new ValidationError("Valor de DPI inválido.");
+            throw new ValidationError(
+                `Valor de DPI inválido. Deve estar entre ${VALIDATION_LIMITS.DPI.MIN} e ${VALIDATION_LIMITS.DPI.MAX}.`
+            );
         }
 
         const dpiValue = parseInt(dpi);

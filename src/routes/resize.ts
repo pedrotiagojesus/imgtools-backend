@@ -9,7 +9,7 @@ import { tempFileManager } from "../utils/tempFileManager";
 import upload from "../utils/upload";
 import { OUTPUT_DIR } from "../utils/coreFolders";
 import { sendImageResponse } from "../utils/imageResponse";
-import { isValidDimension } from "../utils/validators";
+import { isValidDimension, VALIDATION_LIMITS } from "../utils/validators";
 
 // Errors
 import { ValidationError } from "../errors";
@@ -29,7 +29,9 @@ router.post("/", upload.array("images"), async (req, res, next) => {
         }
 
         if (!isValidDimension(width) || !isValidDimension(height)) {
-            throw new ValidationError("Largura e altura devem ser números positivos válidos.");
+            throw new ValidationError(
+                `Largura e altura devem estar entre ${VALIDATION_LIMITS.DIMENSION.MIN} e ${VALIDATION_LIMITS.DIMENSION.MAX} pixels.`
+            );
         }
 
         const parsedWidth = width ? parseInt(width) : undefined;

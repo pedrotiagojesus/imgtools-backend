@@ -104,7 +104,7 @@ export async function createPdf(
         );
         await fs.writeFile(pdfPath, pdfBytes);
 
-        await validatePdfOutput(pdfPath);
+        await validatePdfOutput(pdfPath, requestId);
 
         const duration = Date.now() - startTime;
         const fileSize = pdfBytes.length;
