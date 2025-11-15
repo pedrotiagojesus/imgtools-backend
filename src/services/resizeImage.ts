@@ -1,20 +1,29 @@
 import sharp from "sharp";
 import { withTimeout } from "../utils/withTimeout";
 import { env } from "../config/env";
+import { logger } from "../config/logger";
 
 interface ResizeOptions {
     width?: number;
     height?: number;
 }
 
-export async function resizeImage(inputPath: string, outputPath: string, options: ResizeOptions): Promise<void> {
-
+export async function resizeImage(
+    inputPath: string,
+    outputPath: string,
+    options: ResizeOptions,
+    requestId?: string
+): Promise<void> {
     const { width, height } = options;
+    const startTime = Date.now();
 
-    console.log("🔧 A redimensionar imagem...");
-    console.log("📥 Entrada:", inputPath);
-    console.log("📤 Saída:", outputPath);
-    console.log("📐 Largura:", width, " Altura:", height);
+    logger.debug("Iniciando redimensionamento de imagem", {
+        requestId,
+        inputPath,
+        outputPath,
+        width,
+        height
+    });
 
     try {
         sharp.cache(false);
@@ -26,9 +35,26 @@ export async function resizeImage(inputPath: string, outputPath: string, options
             env.IMAGE_PROCESSING_TIMEOUT_MS,
             'Image resize'
         );
-        console.log("✅ Imagem redimensionada com sucesso!");
+
+        const duration = Date.now() - startTime;
+        logger.info("Imagem redimensionada com sucesso", {
+            requestId,
+            inputPath,
+            outputPath,
+            width,
+            height,
+            duration
+        });
     } catch (err) {
-        console.error("❌ Erro ao redimensionar imagem:", err);
+        const duration = Date.now() - startTime;
+        logger.error("Erro ao redimensionar imagem", {
+            requestId,
+            inputPath,
+            width,
+            height,
+            duration,
+            error: err instanceof Error ? err.message : String(err)
+        });
         throw err;
     }
 }

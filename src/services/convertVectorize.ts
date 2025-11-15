@@ -1,10 +1,10 @@
-// src/services/convertVectorize.ts
 import sharp from "sharp";
 import fs from "fs/promises";
 import path from "path";
-import { Jimp } from "jimp";
+import potrace from "potrace";
 import { withTimeout } from "../utils/withTimeout";
 import { env } from "../config/env";
+import { logger } from "../config/logger";
 
 export async function convertVectorize(
     inputPath: string,
@@ -12,12 +12,22 @@ export async function convertVectorize(
         resize?: { width: number; height: number };
         backgroundColor?: string;
         threshold?: number;
-    } = {}
+    } = {},
+    requestId?: string
 ): Promise<string> {
     const { resize = { width: 512, height: 512 }, backgroundColor = "#ffffff", threshold = 120 } = options;
 
     const tempDir = path.dirname(inputPath);
     const tempPngPath = path.join(tempDir, `temp_${Date.now()}.png`);
+    const startTime = Date.now();
+
+    logger.debug("Iniciando vetorização de imagem", {
+        requestId,
+        inputPath,
+        resize,
+        backgroundColor,
+        threshold
+    });
 
     try {
         // 1. Processar imagem com Sharp
@@ -35,24 +45,17 @@ export async function convertVectorize(
             'Image preprocessing for vectorization'
         );
 
-        // 2. Carregar com Jimp
-        const image = await withTimeout(
-            Jimp.read(tempPngPath),
-            env.IMAGE_PROCESSING_TIMEOUT_MS,
-            'Image loading for vectorization'
-        );
-
-        // 3. Vetorizar com Potrace
+        // 2. Vetorizar com Potrace
         const svg = await withTimeout(
             new Promise<string>((resolve, reject) => {
-                require("potrace").trace(
-                    image.bitmap,
+                potrace.trace(
+                    tempPngPath,
                     {
                         background: "transparent",
                         color: "black",
                         threshold,
                     },
-                    (err: Error, svg: string) => {
+                    (err: Error | null, svg: string) => {
                         if (err) reject(err);
                         else resolve(svg);
                     }
@@ -62,7 +65,24 @@ export async function convertVectorize(
             'Image vectorization'
         );
 
+        const duration = Date.now() - startTime;
+        logger.info("Imagem vetorizada com sucesso", {
+            requestId,
+            inputPath,
+            svgLength: svg.length,
+            duration
+        });
+
         return svg;
+    } catch (err) {
+        const duration = Date.now() - startTime;
+        logger.error("Erro ao vetorizar imagem", {
+            requestId,
+            inputPath,
+            duration,
+            error: err instanceof Error ? err.message : String(err)
+        });
+        throw err;
     } finally {
         await fs.unlink(tempPngPath).catch(() => {});
     }

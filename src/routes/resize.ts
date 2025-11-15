@@ -48,7 +48,7 @@ router.post("/", upload.array("images"), async (req, res, next) => {
             await resizeImage(file.path, outputImagePath, {
                 width: parsedWidth,
                 height: parsedHeight,
-            });
+            }, requestId);
 
             outputFiles.push(outputImagePath);
             tempFileManager.add(outputImagePath, requestId);

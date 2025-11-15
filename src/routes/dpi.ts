@@ -40,7 +40,7 @@ router.post("/", upload.array("images"), async (req, res, next) => {
             const ext = path.extname(file.originalname) || ".jpg";
             const outputImagePath = path.join(OUTPUT_DIR, `image-${index + 1}${ext}`);
 
-            await dpiAjust(file.path, outputImagePath, { dpi: dpiValue });
+            await dpiAjust(file.path, outputImagePath, { dpi: dpiValue }, requestId);
 
             outputFiles.push(outputImagePath);
             tempFileManager.add(outputImagePath, requestId);

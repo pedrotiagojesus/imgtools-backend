@@ -53,11 +53,11 @@ router.post("/", upload.array("images"), async (req, res, next) => {
                     resize: { width: 800, height: 600 },
                     backgroundColor: "#ffffff",
                     threshold: 180,
-                });
+                }, requestId);
 
                 await fs.promises.writeFile(outputPath, svg, "utf-8");
             } else {
-                await convertRaster(file.path, outputPath, format as any);
+                await convertRaster(file.path, outputPath, format as any, requestId);
             }
 
             outputFiles.push(outputPath);

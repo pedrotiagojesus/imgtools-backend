@@ -71,12 +71,12 @@ router.post("/generate-product", upload.array("images"), async (req, res, next) 
 
             const baseName = `convert-${requestId}-${index + 1}.png`;
             const convertedPath = path.join(OUTPUT_DIR, baseName);
-            await convertRaster(file.path, convertedPath, "png");
+            await convertRaster(file.path, convertedPath, "png", requestId);
             tempFileManager.add(convertedPath, requestId);
 
             const dpiName = `dpi-${requestId}-${index + 1}.png`;
             const dpiPath = path.join(OUTPUT_DIR, dpiName);
-            await dpiAjust(convertedPath, dpiPath, { dpi: 300 });
+            await dpiAjust(convertedPath, dpiPath, { dpi: 300 }, requestId);
             tempFileManager.add(dpiPath, requestId);
 
             processedPaths.push(dpiPath);
