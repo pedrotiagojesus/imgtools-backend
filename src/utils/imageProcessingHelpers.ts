@@ -2,6 +2,7 @@ import path from "path";
 import fs from "fs";
 import archiver from "archiver";
 import { OUTPUT_DIR } from "./coreFolders";
+import { logger } from "../config/logger";
 
 export const ZIP_FILENAME = "images.zip";
 
@@ -17,7 +18,10 @@ export const createZip = (): Promise<void> => {
         const archive = archiver("zip", { zlib: { level: 9 } });
 
         output.on("close", () => {
-            console.log(`📦 ZIP criado: ${zipPath} (${archive.pointer()} bytes)`);
+            logger.debug("ZIP criado", {
+                zipPath,
+                size: archive.pointer()
+            });
             resolve();
         });
 

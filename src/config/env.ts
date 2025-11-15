@@ -35,7 +35,8 @@ function validateEnv(): EnvConfig {
         return parsed;
     } catch (error) {
         if (error instanceof z.ZodError) {
-            console.error('❌ Invalid environment configuration:');
+            // Use console.error here because logger is not yet initialized
+            console.error('❌ Configuração de ambiente inválida:');
             error.issues.forEach((err) => {
                 console.error(`  - ${err.path.join('.')}: ${err.message}`);
             });

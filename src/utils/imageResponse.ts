@@ -4,9 +4,16 @@ import { createZip, getZipPath, getBase64FileBuffers } from "./imageProcessingHe
 import { OUTPUT_DIR } from "./coreFolders";
 import { Response } from "express";
 import { tempFileManager } from "./tempFileManager";
+import { logger } from "../config/logger";
 
 export async function sendImageResponse(res: Response, outputFiles: string[], asZip: boolean) {
-    console.log(`📤 Enviando resposta como ${asZip ? "ZIP" : "Base64 JSON"}`);
+    const requestId = (res.req as any).requestId;
+
+    logger.debug("Enviando resposta de imagem", {
+        requestId,
+        format: asZip ? "ZIP" : "Base64 JSON",
+        fileCount: outputFiles.length
+    });
 
     if (asZip) {
         await createZip();
@@ -20,7 +27,13 @@ export async function sendImageResponse(res: Response, outputFiles: string[], as
 
         return res.download(zipPath, () => {
             fs.unlink(zipPath, err => {
-                if (err) console.warn("⚠️ Erro ao remover ZIP:", err);
+                if (err) {
+                    logger.warn("Erro ao remover ZIP", {
+                        requestId,
+                        zipPath,
+                        error: err.message
+                    });
+                }
             });
         });
     } else {

@@ -1,5 +1,6 @@
 import path from "path";
 import fs from "fs";
+import { logger } from "../config/logger";
 
 export const UPLOADS_DIR = path.join(__dirname, "../../tmp/upload");
 export const OUTPUT_DIR = path.join(__dirname, "../../tmp/output");
@@ -12,7 +13,10 @@ export async function generate() {
         try {
             await fs.promises.mkdir(folder, { recursive: true });
         } catch (err) {
-            console.error(`Erro ao criar pasta: ${folder}`, err);
+            logger.error("Erro ao criar pasta", {
+                folder,
+                error: err instanceof Error ? err.message : String(err)
+            });
         }
     }
 }
