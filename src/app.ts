@@ -34,7 +34,11 @@ export async function createApp(): Promise<Application> {
     app.use(
         cors({
             origin: env.CORS_ORIGIN,
-            exposedHeaders: ["X-Filename", "Content-Disposition"],
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+            allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+            exposedHeaders: ['X-Filename', 'Content-Disposition'],
+            credentials: true,
+            maxAge: 86400 // 24 hours
         })
     );
 
