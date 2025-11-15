@@ -2,8 +2,17 @@ import sharp from "sharp";
 import path from "path";
 import { tempFileManager } from "../utils/tempFileManager";
 import { pdf } from "../config/pdf";
+import { logger } from "../config/logger";
 
-export async function pdfPageImages(inputPaths: string[], outputDir: string) {
+export async function pdfPageImages(inputPaths: string[], outputDir: string, requestId?: string) {
+    const startTime = Date.now();
+
+    logger.debug("Iniciando geração de imagens de páginas", {
+        requestId,
+        imageCount: inputPaths.length,
+        outputDir
+    });
+
     const A4_WIDTH = pdf.width;
     const A4_HEIGHT = pdf.height;
     const innerVerticalMargin = pdf.margin.top + pdf.margin.bottom;
@@ -78,8 +87,21 @@ export async function pdfPageImages(inputPaths: string[], outputDir: string) {
             .toFile(outputFile);
 
         pageImages.push(outputFile);
-        tempFileManager.add(outputFile);
+
+        logger.debug("Imagem de página gerada", {
+            requestId,
+            pageNumber: index + 1,
+            outputFile
+        });
     }
+
+    const duration = Date.now() - startTime;
+
+    logger.info("Imagens de páginas geradas com sucesso", {
+        requestId,
+        pageCount: pageImages.length,
+        duration
+    });
 
     return pageImages;
 }

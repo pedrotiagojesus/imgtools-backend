@@ -91,23 +91,16 @@ router.post("/generate-product", upload.array("images"), async (req, res, next) 
             pdfTitle,
             "Pedro Jesus",
             pdfDescription || "",
-            "ETSY Tools"
+            "ETSY Tools",
+            requestId
         );
         tempFileManager.add(pdfPath, requestId);
 
-        logger.info("PDF gerado com sucesso", {
-            requestId,
-            filename: pdfFilename
-        });
-
         // Generate page images
-        const pageImages = await pdfPageImages(processedPaths, OUTPUT_DIR);
+        const pageImages = await pdfPageImages(processedPaths, OUTPUT_DIR, requestId);
         pageImages.forEach(imgPath => tempFileManager.add(imgPath, requestId));
 
-        logger.info("Imagens de páginas geradas", {
-            requestId,
-            pageCount: pageImages.length
-        });
+
 
         // Create ZIP (PDF + page images)
         const zipFilename = `${slugify(pdfTitle)}.zip`;

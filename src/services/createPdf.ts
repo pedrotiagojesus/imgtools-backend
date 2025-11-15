@@ -5,6 +5,7 @@ import { getImageExtension, validatePdfOutput } from "../utils/pdfUtils";
 import { pdf } from "../config/pdf";
 import { withTimeout } from "../utils/withTimeout";
 import { env } from "../config/env";
+import { logger } from "../config/logger";
 
 export async function createPdf(
     inputPaths: string[],
@@ -12,8 +13,18 @@ export async function createPdf(
     pdfTitle: string,
     pdfAuthor: string,
     pdfSubject: string,
-    pdfCreator: string
+    pdfCreator: string,
+    requestId?: string
 ): Promise<void> {
+    const startTime = Date.now();
+
+    logger.debug("Iniciando criação de PDF", {
+        requestId,
+        imageCount: inputPaths.length,
+        pdfTitle,
+        pdfPath
+    });
+
     const pdfDoc = await withTimeout(
         PDFDocument.create(),
         env.IMAGE_PROCESSING_TIMEOUT_MS,
@@ -65,7 +76,12 @@ export async function createPdf(
         });
 
         page.drawImage(image, { x, y, width: scaledWidth, height: scaledHeight });
-        console.log(`📷 Adicionada ao PDF: ${imgPath}`);
+
+        logger.debug("Imagem adicionada ao PDF", {
+            requestId,
+            imagePath: imgPath,
+            pageNumber: pdfDoc.getPageCount()
+        });
     }
 
     if (pdfDoc.getPageCount() === 0) {
@@ -87,6 +103,15 @@ export async function createPdf(
     await fs.writeFile(pdfPath, pdfBytes);
 
     await validatePdfOutput(pdfPath);
-    tempFileManager.add(pdfPath);
-    console.log(`✅ PDF criado: ${pdfPath}`);
+
+    const duration = Date.now() - startTime;
+    const fileSize = pdfBytes.length;
+
+    logger.info("PDF criado com sucesso", {
+        requestId,
+        pdfPath,
+        pageCount: pdfDoc.getPageCount(),
+        fileSize,
+        duration
+    });
 }

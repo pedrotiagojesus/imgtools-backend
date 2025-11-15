@@ -48,7 +48,7 @@ router.post("/", upload.array("images"), async (req, res, next) => {
             tempFileManager.add(file.path, requestId);
         });
 
-        await createPdf(imagePaths, pdfPath, pdfTitle, pdfAuthor, pdfSubject, pdfCreator);
+        await createPdf(imagePaths, pdfPath, pdfTitle, pdfAuthor, pdfSubject, pdfCreator, requestId);
 
         // Register output PDF for cleanup
         tempFileManager.add(pdfPath, requestId);
