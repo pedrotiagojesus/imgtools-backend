@@ -19,17 +19,17 @@ const router = express.Router();
 router.post("/", upload.array("images"), async (req, res, next) => {
     try {
         if (!req.files || !(req.files instanceof Array) || req.files.length === 0) {
-            throw new ValidationError("No files uploaded");
+            throw new ValidationError("Nenhuma imagem enviada.");
         }
 
         const { width, height, zip } = req.body;
 
         if (!width && !height) {
-            throw new ValidationError("Width or height required");
+            throw new ValidationError("Largura ou altura são obrigatórias.");
         }
 
         if (!isValidDimension(width) || !isValidDimension(height)) {
-            throw new ValidationError("Width and height must be valid positive numbers");
+            throw new ValidationError("Largura e altura devem ser números positivos válidos.");
         }
 
         const parsedWidth = width ? parseInt(width) : undefined;

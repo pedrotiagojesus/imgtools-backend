@@ -18,7 +18,7 @@ const router = express.Router();
 router.post("/", upload.array("images"), async (req, res, next) => {
     try {
         if (!req.files || !(req.files instanceof Array) || req.files.length === 0) {
-            throw new ValidationError("No files uploaded");
+            throw new ValidationError("Nenhuma imagem enviada.");
         }
 
         const { pdfTitle, pdfAuthor, pdfSubject, pdfCreator } = req.body;
