@@ -37,10 +37,5 @@ export const rateLimiter = rateLimit({
     },
 
     // Skip rate limiting for successful requests (only count towards limit)
-    skip: () => false,
-
-    // Key generator - use IP address
-    keyGenerator: (req: Request) => {
-        return req.ip || req.socket.remoteAddress || 'unknown';
-    }
+    skip: () => false
 });
