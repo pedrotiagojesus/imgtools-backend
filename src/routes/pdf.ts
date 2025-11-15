@@ -1,66 +1,22 @@
-import express from "express";
-import fs from "fs";
-import path from "path";
+import express from 'express';
 
-// Services
-import { createPdf } from "../services/createPdf";
+// Controllers
+import { pdfController } from '../controllers';
 
-// Utils
-import { tempFileManager } from "../utils/tempFileManager";
-import upload from "../utils/upload";
-import { OUTPUT_DIR } from "../utils/directories";
+// Middleware
+import { validateSchema } from '../middleware/validateSchema';
+import upload from '../utils/upload';
 
-// Errors
-import { ValidationError } from "../errors";
+// Schemas
+import { pdfSchema } from '../schemas/pdf.schema';
 
 const router = express.Router();
 
-router.post("/", upload.array("images"), async (req, res, next) => {
-    try {
-        if (!req.files || !(req.files instanceof Array) || req.files.length === 0) {
-            throw new ValidationError("Nenhuma imagem enviada.");
-        }
-
-        const { pdfTitle, pdfAuthor, pdfSubject, pdfCreator } = req.body;
-        const pdfFilename = "images.pdf";
-        const pdfPath = path.join(OUTPUT_DIR, pdfFilename);
-
-        const validExtensions = [".png", ".jpg", ".jpeg"];
-
-        const invalidFiles = req.files.filter((file) => {
-            const ext = path.extname(file.originalname).toLowerCase();
-            return !validExtensions.includes(ext);
-        });
-
-        if (invalidFiles.length > 0) {
-            const names = invalidFiles.map((f) => f.originalname).join(", ");
-            throw new ValidationError(
-                `Formatos não suportados: ${names}. Apenas PNG e JPG são permitidos.`
-            );
-        }
-
-        // Register all uploaded files for cleanup immediately
-        const requestId = (req as any).requestId;
-        const imagePaths: string[] = [];
-
-        req.files.forEach((file) => {
-            imagePaths.push(file.path);
-            tempFileManager.add(file.path, requestId);
-        });
-
-        await createPdf(imagePaths, pdfPath, pdfTitle, pdfAuthor, pdfSubject, pdfCreator, requestId);
-
-        // Register output PDF for cleanup
-        tempFileManager.add(pdfPath, requestId);
-
-        const pdfBuffer = await fs.promises.readFile(pdfPath);
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Disposition", `attachment; filename="${pdfFilename}"`);
-        res.setHeader("X-Filename", pdfFilename);
-        res.send(pdfBuffer);
-    } catch (err) {
-        next(err);
-    }
-});
+router.post(
+    '/',
+    upload.array('images'),
+    validateSchema(pdfSchema),
+    (req, res, next) => pdfController.createFromImages(req as any, res, next)
+);
 
 export default router;

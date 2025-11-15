@@ -3,7 +3,7 @@
  * Makes it easy to import schemas from a single location
  */
 
-export * from './resize.schema';
-export * from './convert.schema';
-export * from './dpi.schema';
-export * from './pdf.schema';
+export { resizeSchema, type ResizeInput } from './resize.schema';
+export { convertSchema, type ConvertInput } from './convert.schema';
+export { dpiSchema, type DpiInput } from './dpi.schema';
+export { pdfSchema, type PdfInput } from './pdf.schema';

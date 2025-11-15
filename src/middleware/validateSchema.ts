@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { z, ZodError } from 'zod';
+import { z } from 'zod';
 import { ValidationError } from '../errors';
 import { logger } from '../config/logger';
 
@@ -15,7 +15,7 @@ import { logger } from '../config/logger';
  * });
  */
 export function validateSchema<T extends z.ZodType>(schema: T) {
-    return (req: Request, res: Response, next: NextFunction) => {
+    return (req: Request, _res: Response, next: NextFunction) => {
         try {
             // Valida e transforma o body
             const validated = schema.parse(req.body);
@@ -25,11 +25,11 @@ export function validateSchema<T extends z.ZodType>(schema: T) {
 
             next();
         } catch (error) {
-            if (error instanceof ZodError) {
+            if (error instanceof z.ZodError) {
                 const requestId = (req as any).requestId;
 
                 // Formata erros do Zod de forma amigável
-                const errors = error.errors.map(err => ({
+                const errors = error.issues.map((err) => ({
                     field: err.path.join('.'),
                     message: err.message
                 }));
