@@ -71,6 +71,43 @@ class TempFileManager {
     }
 
     /**
+     * Clean up all files associated with a specific request ID
+     * Useful for cleaning up after a request completes or fails
+     *
+     * @param requestId - The request ID to clean up files for
+     * @returns Number of files cleaned up
+     */
+    async cleanupByRequestId(requestId: string): Promise<number> {
+        const filesToClean: string[] = [];
+
+        // Find all files with matching requestId
+        for (const [filePath, metadata] of this.files) {
+            if (metadata.requestId === requestId) {
+                filesToClean.push(filePath);
+            }
+        }
+
+        if (filesToClean.length > 0) {
+            logger.info('Cleaning up temp files by requestId', {
+                requestId,
+                count: filesToClean.length
+            });
+
+            for (const filePath of filesToClean) {
+                await this.remove(filePath);
+                this.files.delete(filePath);
+            }
+
+            logger.debug('Temp files cleaned by requestId', {
+                requestId,
+                count: filesToClean.length
+            });
+        }
+
+        return filesToClean.length;
+    }
+
+    /**
      * Start periodic cleanup of old files
      */
     private startPeriodicCleanup(): void {
@@ -132,6 +169,63 @@ class TempFileManager {
      */
     getTrackedCount(): number {
         return this.files.size;
+    }
+
+    /**
+     * Get count of tracked files for a specific request ID
+     *
+     * @param requestId - The request ID to count files for
+     * @returns Number of files tracked for this request
+     */
+    getTrackedCountByRequestId(requestId: string): number {
+        let count = 0;
+        for (const metadata of this.files.values()) {
+            if (metadata.requestId === requestId) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Get statistics about tracked files
+     * Useful for monitoring and debugging
+     *
+     * @returns Statistics object with file counts and age information
+     */
+    getStatistics(): {
+        totalFiles: number;
+        byRequestId: Map<string, number>;
+        oldestFile: { path: string; age: number } | null;
+        averageAge: number;
+    } {
+        const byRequestId = new Map<string, number>();
+        let oldestFile: { path: string; age: number } | null = null;
+        let totalAge = 0;
+        const now = Date.now();
+
+        for (const [filePath, metadata] of this.files) {
+            // Count by requestId
+            if (metadata.requestId) {
+                const count = byRequestId.get(metadata.requestId) || 0;
+                byRequestId.set(metadata.requestId, count + 1);
+            }
+
+            // Track oldest file
+            const age = now - metadata.createdAt.getTime();
+            totalAge += age;
+
+            if (!oldestFile || age > oldestFile.age) {
+                oldestFile = { path: filePath, age };
+            }
+        }
+
+        return {
+            totalFiles: this.files.size,
+            byRequestId,
+            oldestFile,
+            averageAge: this.files.size > 0 ? totalAge / this.files.size : 0
+        };
     }
 }
 
