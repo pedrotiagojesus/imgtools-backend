@@ -99,9 +99,9 @@ A aplicação utiliza as seguintes variáveis de ambiente para configuração:
 | `RATE_LIMIT_WINDOW_MS` | Janela de tempo para rate limiting (ms) | `900000` (15 min) | `600000` |
 | `RATE_LIMIT_MAX_REQUESTS` | Máximo de requests por janela | `100` | `200` |
 | `REQUEST_TIMEOUT_MS` | Timeout para requests HTTP (ms) | `30000` (30s) | `60000` |
-| `IMAGE_PROCESSING_TIMEOUT_MS` | Timeout para processamento de imagens (ms) | `25000` (25s) | `50000` |
+| `IMAGE_PROCESSING_TIMEOUT_MS` | Timeout para processamento de imagens (ms) | `120000` (2min) | `180000` |
 | `MAX_FILE_SIZE_MB` | Tamanho máximo de arquivo (MB) | `50` | `100` |
-| `MAX_FILES_PER_REQUEST` | Máximo de arquivos por request | `10` | `20` |
+| `MAX_FILES_PER_REQUEST` | Máximo de arquivos por request | `100` | `150` |
 | `TEMP_FILE_MAX_AGE_MS` | Idade máxima de ficheiros temporários (ms) | `3600000` (1h) | `7200000` |
 | `CLEANUP_INTERVAL_MS` | Intervalo de limpeza periódica (ms) | `300000` (5 min) | `600000` |
 | `DISK_SPACE_THRESHOLD` | Limite de uso de disco (0-1) | `0.9` (90%) | `0.85` |
@@ -122,7 +122,7 @@ Todos os uploads são validados antes de serem processados:
 
 - **Tipo MIME**: Apenas tipos de imagem permitidos (image/jpeg, image/png, image/webp, image/gif, image/bmp, image/tiff)
 - **Tamanho máximo**: Configurável via `MAX_FILE_SIZE_MB` (padrão: 50MB)
-- **Número de ficheiros**: Limitado por `MAX_FILES_PER_REQUEST` (padrão: 10 ficheiros)
+- **Número de ficheiros**: Limitado por `MAX_FILES_PER_REQUEST` (padrão: 100 ficheiros, suporta até 80+ imagens)
 - **Nomes únicos**: Geração automática de nomes únicos para evitar colisões
 
 ### Gestão de Ficheiros Temporários
@@ -180,7 +180,7 @@ A API expõe endpoints de health check para monitorização e orquestração (Ku
 ### GET /health
 
 Verifica o estado operacional da API, incluindo:
-- Acesso ao sistema de ficheiros (diretórios de upload e output)
+- Acesso ao sistema de ficheiros (diretório temporário)
 - Uso de memória (alerta se > 90%)
 - Disponibilidade geral do sistema
 
@@ -347,7 +347,7 @@ LOG_LEVEL=info   # Para produção
 **Problema:** Recursos críticos não estão disponíveis
 
 **Solução:**
-- Verifique permissões dos diretórios `tmp/upload` e `tmp/output`
+- Verifique permissões do diretório `tmp/`
 - Verifique uso de memória do sistema
 - Consulte os logs para detalhes específicos do erro
 
@@ -364,13 +364,11 @@ LOG_LEVEL=info   # Para produção
 
 ```bash
 # Windows
-rmdir /s /q tmp\upload
-rmdir /s /q tmp\output
-mkdir tmp\upload
-mkdir tmp\output
+rmdir /s /q tmp
+mkdir tmp
 
 # Linux/Mac
-rm -rf tmp/upload/* tmp/output/*
+rm -rf tmp/*
 ```
 
 ---
@@ -547,6 +545,12 @@ Para melhor performance:
 - Configure `CLEANUP_INTERVAL_MS` baseado no volume de uploads
 - Considere usar CDN para servir imagens processadas
 - Implemente cache de resultados se aplicável
+
+**Processamento em Lote (80+ imagens):**
+- Tempo estimado: ~60-90 segundos para 80 imagens
+- Timeout configurado: 5 minutos (300 segundos) com margem de segurança
+- Processamento sequencial para evitar sobrecarga de memória
+- Limpeza automática após conclusão
 
 ### Escalabilidade
 

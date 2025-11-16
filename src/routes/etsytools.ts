@@ -81,10 +81,27 @@ router.post("/generate-product", upload.array("images"), async (req, res, next) 
 
             const dpiName = `dpi-${requestId}-${index + 1}.png`;
             const dpiPath = path.join(OUTPUT_DIR, dpiName);
-            await adjustDpi(convertedPath, dpiPath, { dpi: 300 }, requestId);
-            tempFileManager.add(dpiPath, requestId);
 
-            processedPaths.push(dpiPath);
+            try {
+                await adjustDpi(convertedPath, dpiPath, { dpi: 300 }, requestId);
+                tempFileManager.add(dpiPath, requestId);
+                processedPaths.push(dpiPath);
+
+                logger.debug("Arquivo DPI criado", {
+                    requestId,
+                    dpiPath,
+                    index: index + 1
+                });
+            } catch (dpiError) {
+                logger.error("Erro ao ajustar DPI", {
+                    requestId,
+                    convertedPath,
+                    dpiPath,
+                    index: index + 1,
+                    error: dpiError instanceof Error ? dpiError.message : String(dpiError)
+                });
+                throw dpiError;
+            }
 
             const imageDuration = Date.now() - imageStart;
             logger.debug(`Imagem ${index + 1} processada`, {
@@ -93,6 +110,22 @@ router.post("/generate-product", upload.array("images"), async (req, res, next) 
             });
         }
         timings.imageProcessing = Date.now() - conversionStart;
+
+        // ⚡ Verify all processed files exist before continuing
+        const fs = await import("fs/promises");
+        for (const filePath of processedPaths) {
+            try {
+                await fs.access(filePath);
+                logger.debug("Arquivo verificado", { requestId, filePath });
+            } catch (err) {
+                logger.error("Arquivo processado não encontrado", {
+                    requestId,
+                    filePath,
+                    error: err instanceof Error ? err.message : String(err)
+                });
+                throw new Error(`Arquivo processado não encontrado: ${filePath}`);
+            }
+        }
 
         // ⚡ Generate PDF (with timing)
         const pdfStart = Date.now();

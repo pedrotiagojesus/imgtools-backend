@@ -37,9 +37,13 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction): 
         userAgent
     });
 
-    // Cleanup temp files when response finishes (success or error)
-    res.on('finish', async () => {
+    // Cleanup temp files when response closes (after streaming completes)
+    // Using 'close' instead of 'finish' to ensure streaming operations complete first
+    res.on('close', async () => {
         try {
+            // Add a small delay to ensure all file operations are complete
+            await new Promise(resolve => setTimeout(resolve, 100));
+
             const filesCount = tempFileManager.getTrackedCountByRequestId(req.requestId!);
             if (filesCount > 0) {
                 const cleaned = await tempFileManager.cleanupByRequestId(req.requestId!);

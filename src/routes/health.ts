@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { UPLOADS_DIR, OUTPUT_DIR } from '../utils/directories';
+import { TEMP_DIR } from '../utils/directories';
 
 const router = Router();
 
@@ -13,8 +13,7 @@ interface HealthCheckResult {
     checks: {
         filesystem: {
             status: 'pass' | 'fail';
-            uploadsWritable: boolean;
-            outputWritable: boolean;
+            tempDirWritable: boolean;
             message?: string;
         };
         memory: {
@@ -75,9 +74,8 @@ function checkMemoryUsage(): { usagePercent: number; isHealthy: boolean } {
 router.get('/health', async (req: Request, res: Response) => {
     try {
         // Check filesystem access
-        const uploadsWritable = await checkDirectoryWritable(UPLOADS_DIR);
-        const outputWritable = await checkDirectoryWritable(OUTPUT_DIR);
-        const filesystemHealthy = uploadsWritable && outputWritable;
+        const tempDirWritable = await checkDirectoryWritable(TEMP_DIR);
+        const filesystemHealthy = tempDirWritable;
 
         // Check memory usage
         const memoryCheck = checkMemoryUsage();
@@ -96,11 +94,10 @@ router.get('/health', async (req: Request, res: Response) => {
             checks: {
                 filesystem: {
                     status: filesystemHealthy ? 'pass' : 'fail',
-                    uploadsWritable,
-                    outputWritable,
+                    tempDirWritable,
                     message: filesystemHealthy
-                        ? 'All directories are writable'
-                        : 'One or more directories are not writable'
+                        ? 'Temporary directory is writable'
+                        : 'Temporary directory is not writable'
                 },
                 memory: {
                     status: memoryCheck.isHealthy ? 'pass' : 'fail',
@@ -136,9 +133,8 @@ router.get('/health', async (req: Request, res: Response) => {
 router.get('/health/ready', async (req: Request, res: Response) => {
     try {
         // Check filesystem access
-        const uploadsWritable = await checkDirectoryWritable(UPLOADS_DIR);
-        const outputWritable = await checkDirectoryWritable(OUTPUT_DIR);
-        const filesystemReady = uploadsWritable && outputWritable;
+        const tempDirWritable = await checkDirectoryWritable(TEMP_DIR);
+        const filesystemReady = tempDirWritable;
 
         // Check memory usage
         const memoryCheck = checkMemoryUsage();

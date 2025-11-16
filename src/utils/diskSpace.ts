@@ -224,12 +224,12 @@ export function getDiskSpaceCacheStats(): {
 export function checkDiskSpaceMiddleware(threshold: number = 90) {
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
-            // Check disk space for the upload directory
-            const uploadPath = process.cwd() + '/tmp/upload';
-            const diskInfo = await checkDiskSpace(uploadPath);
+            // Check disk space for the temporary directory
+            const { TEMP_DIR } = await import('./directories');
+            const diskInfo = await checkDiskSpace(TEMP_DIR);
 
             logger.debug('Disk space check', {
-                path: uploadPath,
+                path: TEMP_DIR,
                 usagePercent: diskInfo.usagePercent.toFixed(2),
                 free: (diskInfo.free / (1024 * 1024 * 1024)).toFixed(2) + ' GB',
                 threshold: threshold + '%'

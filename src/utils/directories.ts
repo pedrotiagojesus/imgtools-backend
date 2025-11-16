@@ -3,47 +3,64 @@ import fs from "fs";
 import { logger } from "../config/logger";
 
 /**
- * Directory paths for temporary file storage
+ * Single temporary directory for all file operations
+ * Simplifies file management by using one location for uploads and outputs
  */
-export const UPLOADS_DIR = path.join(__dirname, "../../tmp/upload");
-export const OUTPUT_DIR = path.join(__dirname, "../../tmp/output");
+export const TEMP_DIR = path.join(__dirname, "../../tmp");
 
-const folders = [UPLOADS_DIR, OUTPUT_DIR];
+// Backward compatibility aliases
+export const UPLOADS_DIR = TEMP_DIR;
+export const OUTPUT_DIR = TEMP_DIR;
 
 /**
- * Generates the necessary directories if they do not exist
- * Creates upload and output directories for temporary file storage
+ * Generates the temporary directory if it does not exist
  */
 export async function generate() {
-    for (const folder of folders) {
-        try {
-            await fs.promises.mkdir(folder, { recursive: true });
-        } catch (err) {
-            logger.error("Erro ao criar pasta", {
-                folder,
-                error: err instanceof Error ? err.message : String(err)
-            });
-        }
+    try {
+        await fs.promises.mkdir(TEMP_DIR, { recursive: true });
+        logger.debug("Temporary directory ready", { path: TEMP_DIR });
+    } catch (err) {
+        logger.error("Erro ao criar pasta temporária", {
+            folder: TEMP_DIR,
+            error: err instanceof Error ? err.message : String(err)
+        });
     }
 }
 
 /**
- * Removes the directories and their contents
- * This is useful for cleaning up temporary files after processing
+ * Clears all files from the temporary directory
+ * Keeps the directory itself but removes all contents
  */
 export async function remove() {
-    const foldersToRemove = [
-        path.join(__dirname, "../../tmp/upload"),
-        path.join(__dirname, "../../tmp/output"),
-        path.join(__dirname, "../../tmp/zips"),
-    ];
+    try {
+        const files = await fs.promises.readdir(TEMP_DIR);
 
-    for (const folder of foldersToRemove) {
-        const fullPath = path.join(__dirname, folder);
-        try {
-            await fs.promises.rm(fullPath, { recursive: true, force: true });
-        } catch (err) {
-            // Ignora erro se pasta não existir
+        for (const file of files) {
+            const filePath = path.join(TEMP_DIR, file);
+            try {
+                const stat = await fs.promises.stat(filePath);
+                if (stat.isDirectory()) {
+                    await fs.promises.rm(filePath, { recursive: true, force: true });
+                } else {
+                    await fs.promises.unlink(filePath);
+                }
+            } catch (err) {
+                // Ignora erros individuais de arquivos
+                logger.debug("Erro ao remover arquivo", {
+                    file: filePath,
+                    error: err instanceof Error ? err.message : String(err)
+                });
+            }
+        }
+
+        logger.debug("Temporary directory cleaned", { path: TEMP_DIR });
+    } catch (err) {
+        // Ignora erro se pasta não existir
+        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+            logger.warn("Erro ao limpar pasta temporária", {
+                folder: TEMP_DIR,
+                error: err instanceof Error ? err.message : String(err)
+            });
         }
     }
 }
