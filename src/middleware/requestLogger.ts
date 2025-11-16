@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../config/logger';
+import { tempFileManager } from '../utils/tempFileManager';
 
 // Extend Express Request type to include requestId
 declare global {
@@ -16,6 +17,7 @@ declare global {
  * Request logger middleware
  * Logs all incoming requests with method, path, IP, user agent, and duration
  * Attaches a unique request ID to each request for tracking
+ * Automatically cleans up temp files after request completion
  */
 export const requestLogger = (req: Request, res: Response, next: NextFunction): void => {
     // Generate unique request ID
@@ -33,6 +35,25 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction): 
         path,
         ip,
         userAgent
+    });
+
+    // Cleanup temp files when response finishes (success or error)
+    res.on('finish', async () => {
+        try {
+            const filesCount = tempFileManager.getTrackedCountByRequestId(req.requestId!);
+            if (filesCount > 0) {
+                const cleaned = await tempFileManager.cleanupByRequestId(req.requestId!);
+                logger.debug('Temp files cleaned after request', {
+                    requestId: req.requestId,
+                    filesCount: cleaned
+                });
+            }
+        } catch (error) {
+            logger.error('Error cleaning temp files after request', {
+                requestId: req.requestId,
+                error: error instanceof Error ? error.message : String(error)
+            });
+        }
     });
 
     // Capture response finish event to log completion

@@ -55,14 +55,22 @@ export const errorHandler = async (
         logger.warn(`Client error: ${err.message}`, errorContext);
     }
 
-    // Cleanup temp files on error
-    try {
-        await tempFileManager.cleanup();
-    } catch (cleanupError) {
-        logger.error('Failed to cleanup temp files during error handling', {
-            requestId,
-            error: cleanupError instanceof Error ? cleanupError.message : 'Unknown error',
-        });
+    // Cleanup temp files for this specific request on error
+    if (requestId) {
+        try {
+            const cleaned = await tempFileManager.cleanupByRequestId(requestId);
+            if (cleaned > 0) {
+                logger.debug('Temp files cleaned after error', {
+                    requestId,
+                    filesCount: cleaned
+                });
+            }
+        } catch (cleanupError) {
+            logger.error('Failed to cleanup temp files during error handling', {
+                requestId,
+                error: cleanupError instanceof Error ? cleanupError.message : 'Unknown error',
+            });
+        }
     }
 
     // Build error response
