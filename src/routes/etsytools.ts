@@ -21,6 +21,9 @@ import { ValidationError } from "../errors";
 const router = express.Router();
 
 router.post("/generate-product", upload.array("images"), async (req, res, next) => {
+    const startTime = Date.now();
+    const timings: Record<string, number> = {};
+
     try {
         if (!req.files || !(req.files instanceof Array) || req.files.length === 0) {
             throw new ValidationError("Nenhuma imagem enviada.");
@@ -58,9 +61,11 @@ router.post("/generate-product", upload.array("images"), async (req, res, next) 
 
         const processedPaths: string[] = [];
 
-        // Convert and adjust DPI of uploaded images
+        // ⚡ Convert and adjust DPI of uploaded images (with timing)
+        const conversionStart = Date.now();
         for (let index = 0; index < req.files.length; index++) {
             const file = req.files[index];
+            const imageStart = Date.now();
 
             logger.debug("Processando imagem", {
                 requestId,
@@ -80,9 +85,17 @@ router.post("/generate-product", upload.array("images"), async (req, res, next) 
             tempFileManager.add(dpiPath, requestId);
 
             processedPaths.push(dpiPath);
-        }
 
-        // Generate PDF
+            const imageDuration = Date.now() - imageStart;
+            logger.debug(`Imagem ${index + 1} processada`, {
+                requestId,
+                duration: imageDuration
+            });
+        }
+        timings.imageProcessing = Date.now() - conversionStart;
+
+        // ⚡ Generate PDF (with timing)
+        const pdfStart = Date.now();
         const pdfFilename = `${slugify(pdfTitle)}.pdf`;
         const pdfPath = path.join(OUTPUT_DIR, pdfFilename);
         await createPdf(
@@ -95,14 +108,16 @@ router.post("/generate-product", upload.array("images"), async (req, res, next) 
             requestId
         );
         tempFileManager.add(pdfPath, requestId);
+        timings.pdfGeneration = Date.now() - pdfStart;
 
-        // Generate page images
+        // ⚡ Generate page images (with timing)
+        const pageImagesStart = Date.now();
         const pageImages = await pdfPageImages(processedPaths, OUTPUT_DIR, requestId);
         pageImages.forEach(imgPath => tempFileManager.add(imgPath, requestId));
+        timings.pageImagesGeneration = Date.now() - pageImagesStart;
 
-
-
-        // Create ZIP (PDF + page images)
+        // ⚡ Create ZIP with organized structure (PDF + Images folder)
+        const zipStart = Date.now();
         const zipFilename = `${slugify(pdfTitle)}.zip`;
         res.setHeader("Content-Type", "application/zip");
         res.setHeader("Content-Disposition", `attachment; filename="${zipFilename}"`);
@@ -120,16 +135,28 @@ router.post("/generate-product", upload.array("images"), async (req, res, next) 
 
         archive.pipe(res);
 
+        // Add PDF to root of ZIP
         archive.file(pdfPath, { name: pdfFilename });
+
+        // Add page images to "Images" folder inside ZIP
         for (const imgPath of pageImages) {
-            archive.file(imgPath, { name: path.basename(imgPath) });
+            archive.file(imgPath, { name: `Images/${path.basename(imgPath)}` });
         }
 
         await archive.finalize();
+        timings.zipCreation = Date.now() - zipStart;
+        timings.total = Date.now() - startTime;
 
         logger.info("Produto Etsy gerado com sucesso", {
             requestId,
-            zipFilename
+            zipFilename,
+            timings: {
+                imageProcessing: `${timings.imageProcessing}ms`,
+                pdfGeneration: `${timings.pdfGeneration}ms`,
+                pageImagesGeneration: `${timings.pageImagesGeneration}ms`,
+                zipCreation: `${timings.zipCreation}ms`,
+                total: `${timings.total}ms`
+            }
         });
     } catch (err) {
         next(err);
