@@ -1,5 +1,6 @@
 import express, { Application } from "express";
 import cors from "cors";
+import compression from "compression";
 
 // Config
 import { env } from "./config/env";
@@ -42,10 +43,25 @@ export async function createApp(): Promise<Application> {
         })
     );
 
-    // 5. Body parser
+    // 5. Compression (gzip/deflate)
+    app.use(compression({
+        level: 6, // Balance between speed and compression
+        threshold: 1024, // Only compress responses > 1KB
+        filter: (req, res) => {
+            // Don't compress images (already compressed)
+            if (req.path.includes('/api/convert-image') ||
+                req.path.includes('/api/resize-image') ||
+                req.path.includes('/api/pdf-from-images')) {
+                return false;
+            }
+            return compression.filter(req, res);
+        }
+    }));
+
+    // 6. Body parser
     app.use(express.json());
 
-    // 6. Routes
+    // 7. Routes
     const healthRoute = (await import("./routes/health")).default;
     const convertRoute = (await import("./routes/convert")).default;
     const resizeRoute = (await import("./routes/resize")).default;
@@ -62,7 +78,7 @@ export async function createApp(): Promise<Application> {
     app.use("/api/image-metadata", metadataRoute);
     app.use("/api/etsytools", etsytoolsRoute);
 
-    // 7. Global error handler (must be last)
+    // 8. Global error handler (must be last)
     app.use(errorHandler);
 
     return app;

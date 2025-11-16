@@ -74,12 +74,17 @@ export class PdfController {
             // Register output PDF for cleanup
             tempFileManager.add(pdfPath, requestId);
 
-            // Send PDF response
-            const pdfBuffer = await fs.promises.readFile(pdfPath);
+            // ⚡ Stream PDF response (faster, less memory)
+            const fs = require('fs');
+            const stat = await require('fs').promises.stat(pdfPath);
+
             res.setHeader('Content-Type', 'application/pdf');
             res.setHeader('Content-Disposition', `attachment; filename="${pdfFilename}"`);
             res.setHeader('X-Filename', pdfFilename);
-            res.send(pdfBuffer);
+            res.setHeader('Content-Length', stat.size);
+
+            const stream = fs.createReadStream(pdfPath);
+            stream.pipe(res);
         } catch (err) {
             next(err);
         }

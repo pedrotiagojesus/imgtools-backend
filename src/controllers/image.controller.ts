@@ -24,10 +24,12 @@ import { ValidationError } from '../errors';
 
 /**
  * Controller para operações de processamento de imagens
+ * Otimizado para processamento paralelo
  */
 export class ImageController {
     /**
      * Redimensiona uma ou múltiplas imagens
+     * Processa todas as imagens em paralelo para melhor performance
      */
     async resize(
         req: AppRequest,
@@ -45,9 +47,8 @@ export class ImageController {
             // Register uploaded files for cleanup
             req.files.forEach(file => tempFileManager.add(file.path, requestId));
 
-            const outputFiles: string[] = [];
-
-            for (const [index, file] of req.files.entries()) {
+            // ⚡ Process all images in parallel
+            const processPromises = req.files.map(async (file, index) => {
                 const ext = path.extname(file.originalname) || '.jpg';
                 const outputImagePath = path.join(OUTPUT_DIR, `image-${index + 1}${ext}`);
 
@@ -58,9 +59,11 @@ export class ImageController {
                     requestId
                 );
 
-                outputFiles.push(outputImagePath);
                 tempFileManager.add(outputImagePath, requestId);
-            }
+                return outputImagePath;
+            });
+
+            const outputFiles = await Promise.all(processPromises);
 
             await sendImageResponse(res, outputFiles, zip === 'true');
         } catch (err) {
@@ -70,6 +73,7 @@ export class ImageController {
 
     /**
      * Ajusta o DPI de uma ou múltiplas imagens
+     * Processa todas as imagens em paralelo para melhor performance
      */
     async adjustDpi(
         req: AppRequest,
@@ -87,9 +91,8 @@ export class ImageController {
             // Register uploaded files for cleanup
             req.files.forEach(file => tempFileManager.add(file.path, requestId));
 
-            const outputFiles: string[] = [];
-
-            for (const [index, file] of req.files.entries()) {
+            // ⚡ Process all images in parallel
+            const processPromises = req.files.map(async (file, index) => {
                 const ext = path.extname(file.originalname) || '.jpg';
                 const outputImagePath = path.join(OUTPUT_DIR, `image-${index + 1}${ext}`);
 
@@ -100,9 +103,11 @@ export class ImageController {
                     requestId
                 );
 
-                outputFiles.push(outputImagePath);
                 tempFileManager.add(outputImagePath, requestId);
-            }
+                return outputImagePath;
+            });
+
+            const outputFiles = await Promise.all(processPromises);
 
             await sendImageResponse(res, outputFiles, zip === 'true');
         } catch (err) {
@@ -112,6 +117,7 @@ export class ImageController {
 
     /**
      * Converte imagens para diferentes formatos
+     * Processa todas as imagens em paralelo para melhor performance
      */
     async convert(
         req: AppRequest,
@@ -129,15 +135,14 @@ export class ImageController {
             // Register uploaded files for cleanup
             req.files.forEach(file => tempFileManager.add(file.path, requestId));
 
-            const outputFiles: string[] = [];
-
-            for (const [index, file] of req.files.entries()) {
+            // ⚡ Process all images in parallel
+            const processPromises = req.files.map(async (file, index) => {
                 const baseName = `image-${index + 1}.${format}`;
                 const outputPath = path.join(OUTPUT_DIR, baseName);
 
                 if (format === 'svg') {
                     if (!isVectorizable(file.mimetype)) {
-                        continue;
+                        return null; // Skip non-vectorizable images
                     }
 
                     const svg = await convertVectorize(
@@ -155,9 +160,12 @@ export class ImageController {
                     await convertRaster(file.path, outputPath, format as any, requestId);
                 }
 
-                outputFiles.push(outputPath);
                 tempFileManager.add(outputPath, requestId);
-            }
+                return outputPath;
+            });
+
+            const results = await Promise.all(processPromises);
+            const outputFiles = results.filter((path): path is string => path !== null);
 
             await sendImageResponse(res, outputFiles, zip === 'true');
         } catch (err) {

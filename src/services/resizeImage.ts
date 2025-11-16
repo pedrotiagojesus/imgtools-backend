@@ -26,11 +26,20 @@ export async function resizeImage(
     });
 
     try {
+        // ⚡ Optimize Sharp for better performance
         sharp.cache(false);
+        sharp.concurrency(1); // Limit concurrency per process
+        sharp.simd(true);     // Use SIMD instructions (faster)
 
         await withTimeout(
             sharp(inputPath)
-                .resize({ width, height, fit: "inside" })
+                .resize({
+                    width,
+                    height,
+                    fit: "inside",
+                    withoutEnlargement: true,
+                    fastShrinkOnLoad: true // ⚡ Faster for shrinking
+                })
                 .toFile(outputPath),
             env.IMAGE_PROCESSING_TIMEOUT_MS,
             'Image resize'
