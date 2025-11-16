@@ -33,7 +33,7 @@ export async function createApp(): Promise<Application> {
     // 4. CORS
     app.use(
         cors({
-            origin: env.CORS_ORIGIN,
+            origin: env.CORS_ORIGIN.includes('*') ? '*' : env.CORS_ORIGIN,
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
             allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
             exposedHeaders: ['X-Filename', 'Content-Disposition'],
